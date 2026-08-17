@@ -46,7 +46,8 @@
   .card { position: relative; width: 100%; aspect-ratio: 4/3; max-height: 46vh; border-radius: 26px;
           box-shadow: 0 12px 28px var(--shadow2); touch-action: none; user-select: none; -webkit-user-select: none; }
   .card .img { position: absolute; inset: 0; border-radius: 26px; overflow: hidden; }
-  .card .img img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; -webkit-user-drag: none; }
+  .card .img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; -webkit-user-drag: none; }
+  .card .img img + img { opacity: 0; } /* 프레임 스택: 뒤 프레임은 크로스페이드로 등장 */
   .tag { position: absolute; top: 12px; left: 12px; background: #fff; color: var(--accent); font-family: 'Jua'; font-size: 12px;
          padding: 5px 10px; border-radius: 999px; box-shadow: 0 3px 8px rgba(91,66,48,.15); z-index: 4; }
 
@@ -94,8 +95,8 @@
   #scrRoll, #scrRoll2 { background: linear-gradient(180deg, #E7F0DC 0%, var(--cream) 55%); }
   #scrDone { background: linear-gradient(180deg, #FFDFA1 0%, var(--cream) 60%); }
 
-  /* ---- 휘젓기: 그림 전체가 젓는 궤적을 그림 (거품기가 원을 그리는 효과) ---- */
-  #stirImg { transform: scale(1.12); will-change: transform; }
+  /* ---- 휘젓기: 그림 전체가 젓는 궤적 + 깬 계란→계란물 프레임 크로스페이드 ---- */
+  #stirWrap { transform: scale(1.12); will-change: transform; }
 
   /* ---- 붓기: 계란물 볼이 팬 위에서 기울어짐 ---- */
   .bowl { position: absolute; left: 6%; top: -4%; width: 36%; aspect-ratio: 1; border-radius: 999px; overflow: hidden;
@@ -233,7 +234,7 @@
     </div>
     <div class="mid">
       <div class="card" id="stirCard">
-        <div class="img"><img id="stirImg" src="assets/eggroll2-3.png" alt=""></div>
+        <div class="img" id="stirWrap"><img src="assets/egg-cracked.jpg" alt=""><img id="stirF2" src="assets/egg-batter.jpg" alt=""></div>
         <div class="tag">폰으로 원을 그려도, 손가락으로 저어도 OK</div>
       </div>
       <div class="panel">
@@ -301,11 +302,7 @@
     </div>
     <div class="mid">
       <div class="card rollCard" id="rollCard">
-        <div class="img"><img src="assets/eggroll2-4.png" alt=""></div>
-        <div class="eggArea">
-          <div class="rolledCover" id="rollCover"></div>
-          <div class="eggRollBar" id="rollBar"><div class="spir" id="rollSpir1"></div><div class="spir" id="rollSpir2"></div></div>
-        </div>
+        <div class="img" id="rollWrap"><img src="assets/egg-batter.jpg" alt=""><img id="rollF2" src="assets/egg-halfroll.jpg" alt=""><img id="rollF3" src="assets/egg-rolled.jpg" alt=""></div>
         <div class="swipeArrows"><span>↑</span><span>↑</span><div class="fingertip">👆</div></div>
         <div class="tag">90° 위로 천천히!</div>
       </div>
@@ -365,11 +362,7 @@
     </div>
     <div class="mid">
       <div class="card rollCard" id="roll2Card">
-        <div class="img"><img src="assets/eggroll2-4.png" alt=""></div>
-        <div class="eggArea">
-          <div class="rolledCover" id="roll2Cover"></div>
-          <div class="eggRollBar" id="roll2Bar"><div class="spir" id="roll2Spir1"></div><div class="spir" id="roll2Spir2"></div></div>
-        </div>
+        <div class="img" id="roll2Wrap"><img src="assets/egg-batter.jpg" alt=""><img id="roll2F2" src="assets/egg-halfroll.jpg" alt=""><img id="roll2F3" src="assets/egg-rolled.jpg" alt=""></div>
         <div class="swipeArrows"><span>↑</span><span>↑</span><div class="fingertip">👆</div></div>
         <div class="tag">한 번 더 말면 완성! 🌀</div>
       </div>
@@ -544,17 +537,18 @@
   controllers.scrStir = (function () {
     var TARGET = 6; // 목표 회전수
     var cum = 0, doneFlag = false, lastBubble = 0, speed = 0;
-    var card = $('stirCard'), img = $('stirImg'), fill = $('stirFill'), val = $('stirVal'), pill = $('stirPill');
+    var card = $('stirCard'), wrap = $('stirWrap'), f2 = $('stirF2'), fill = $('stirFill'), val = $('stirVal'), pill = $('stirPill');
     function add(dRad, t) {
       if (doneFlag) return;
       cum += dRad;
       speed = speed * 0.9 + Math.abs(dRad) * 6; // 대략적 속도 지표
       var rev = Math.abs(cum) / (2 * Math.PI);
-      // 그림 전체가 젓는 원 궤적을 그림 → 거품기가 원을 그리는 것처럼 보임
+      // 그림 전체가 젓는 원 궤적 + 저을수록 깬 계란 → 풀린 계란물로 크로스페이드
       var R = 5 + clamp(speed, 0, 2) * 3.5;
-      img.style.transform = 'scale(1.12) translate(' + (Math.cos(cum) * R).toFixed(1) + 'px,' +
+      wrap.style.transform = 'scale(1.12) translate(' + (Math.cos(cum) * R).toFixed(1) + 'px,' +
         (Math.sin(cum) * R).toFixed(1) + 'px) rotate(' + (Math.sin(cum) * 2.5).toFixed(1) + 'deg)';
       var pct = clamp(rev / TARGET * 100, 0, 100);
+      f2.style.opacity = (pct / 100).toFixed(2);
       fill.style.width = pct + '%';
       val.textContent = pct.toFixed(0) + '%';
       if (rev - lastBubble > 0.5) {
@@ -691,19 +685,18 @@
 
   // ================= 말기 (3단계 & 4단계 후반) =================
   function makeRoll(ids, cells, nextId) {
-    var card = $(ids.card), cover = $(ids.cover), bar = $(ids.bar), hint = $(ids.hint), pill = $(ids.pill);
-    var spirs = [$(ids.spir1), $(ids.spir2)];
+    var card = $(ids.card), wrap = $(ids.wrap), hint = $(ids.hint), pill = $(ids.pill);
+    var f2 = $(ids.f2), f3 = $(ids.f3);
     var cell = 0, doneFlag = false, drag = null;
     function layout(progress) {
-      // 팬 안에서 계란이 아래→위로 말려 올라감: 롤이 전진하며 도톰해지고, 지나간 자리는 빈 팬
-      var overall = clamp((cell + clamp(progress, 0, 1)) / cells, 0, 1);
-      var rollH = 24 + overall * 12;
-      var bottom = overall * (100 - rollH);
-      bar.style.height = rollH + '%';
-      bar.style.bottom = bottom + '%';
-      cover.style.height = bottom + '%';
-      var rot = overall * 720;
-      spirs.forEach(function (s2) { s2.style.transform = 'rotate(' + rot + 'deg)'; });
+      // 드래그 진행도로 일러스트 프레임을 스크럽: 계란물 → 반 말림 → 다 말림
+      var p = clamp(progress, 0, 1);
+      var overall = clamp((cell + p) / cells, 0, 1);
+      var pos = overall * 2; // 3프레임 → 0~2
+      f2.style.opacity = clamp(pos, 0, 1).toFixed(2);
+      f3.style.opacity = clamp(pos - 1, 0, 1).toFixed(2);
+      // 드래그 중 살짝 딸려 올라오는 촉감
+      wrap.style.transform = 'translateY(' + (-p * 7).toFixed(1) + 'px) scale(' + (1 + p * 0.015).toFixed(3) + ')';
     }
     card.addEventListener('pointerdown', function (e) {
       if (doneFlag) return;
@@ -777,8 +770,8 @@
       reset: function () { cell = 0; doneFlag = false; layout(0); }
     };
   }
-  controllers.scrRoll = makeRoll({ card: 'rollCard', cover: 'rollCover', bar: 'rollBar', spir1: 'rollSpir1', spir2: 'rollSpir2', hint: 'rollHint', pill: 'rollPill' }, 3, 'scrPour2');
-  controllers.scrRoll2 = makeRoll({ card: 'roll2Card', cover: 'roll2Cover', bar: 'roll2Bar', spir1: 'roll2Spir1', spir2: 'roll2Spir2', hint: 'roll2Hint', pill: 'roll2Pill' }, 2, 'scrDone');
+  controllers.scrRoll = makeRoll({ card: 'rollCard', wrap: 'rollWrap', f2: 'rollF2', f3: 'rollF3', hint: 'rollHint', pill: 'rollPill' }, 3, 'scrPour2');
+  controllers.scrRoll2 = makeRoll({ card: 'roll2Card', wrap: 'roll2Wrap', f2: 'roll2F2', f3: 'roll2F3', hint: 'roll2Hint', pill: 'roll2Pill' }, 2, 'scrDone');
 
   // ================= 조작 힌트 오버레이 =================
   document.querySelectorAll('.hintOv').forEach(function (ov) {
