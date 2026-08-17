@@ -632,16 +632,18 @@
       } },
 
     { id: 'roll', em: '🍣', nm: '말기', tag: '모션', needSensor: false,
-      inst: '<b>수직(90°)으로 정확히</b> 올려야 말려요 — 허용 각도보다 어긋나면 실패! 모션(폰 들어올리기)과 터치(위로 쓸어올리기) 모두 같은 기준이에요. 5칸이면 완성!',
+      inst: '<b>수직(90°)으로 + 천천히 부드럽게</b> 올려야 말려요 — 각도가 어긋나거나 <b>너무 빠르면 실패!</b> 모션(폰 들어올리기)과 터치(위로 쓸어올리기) 모두 같은 기준이에요. 5칸이면 완성!',
       build: function (body, api) {
-        var st = { thresh: 6, tol: 10, refUntil: 0, pend: null };
+        var st = { thresh: 3, tol: 10, vmax: 8, smax: 600, refUntil: 0, pend: null };
         var state = document.createElement('div'); state.className = 'stateTxt'; body.appendChild(state);
         var prog = document.createElement('div'); prog.className = 'bigcount'; prog.style.fontSize = '34px'; body.appendChild(prog);
         var gw = document.createElement('div'); gw.className = 'gaugeWrap'; body.appendChild(gw);
         var m1 = meterRow('수직 가속');
         gw.appendChild(m1.el);
-        gw.appendChild(slider('민감도', 3, 12, 0.5, st.thresh, function (v) { st.thresh = v; }));
+        gw.appendChild(slider('민감도', 2, 8, 0.5, st.thresh, function (v) { st.thresh = v; }));
         gw.appendChild(slider('허용 각도', 5, 45, 1, st.tol, function (v) { st.tol = v; }));
+        gw.appendChild(slider('속도제한(모션)', 4, 16, 0.5, st.vmax, function (v) { st.vmax = v; }));
+        gw.appendChild(slider('속도제한(터치)', 200, 2000, 50, st.smax, function (v) { st.smax = v; }));
         var area = document.createElement('div'); area.className = 'area'; area.style.minHeight = '160px';
         area.innerHTML = '<span class="cEmoji">🍙</span><span>위로 쓸어올리기 (터치 대체)</span>';
         body.appendChild(area);
@@ -660,42 +662,51 @@
           if (seg >= 5) { seg = 0; done++; api.count(done); state.textContent = '김밥 완성! 🍣'; vib(60); }
           show();
         }
-        function fail(dev) {
+        function fail(msg) {
           fails++;
-          api.event('실패 — ' + dev.toFixed(0) + '° 어긋남'); vib(80);
-          state.textContent = '❌ ' + dev.toFixed(0) + '° 어긋남 — 실패!'; state.className = 'stateTxt';
+          api.event('실패 — ' + msg); vib(80);
+          state.textContent = '❌ ' + msg + ' — 실패!'; state.className = 'stateTxt';
           show();
         }
         this.onMotion = function (s) {
           if (!s.ready) return;
           if (st.pend) {
-            // 임계 돌파 후 0.16초간 가속 벡터를 적분해 스트로크 전체의 순방향 판정
+            // 스트로크가 끝날 때까지 가속 벡터를 적분: 방향(수직 순수도)과 속도(피크 가속)를 함께 판정
             var dt = s.t - st.pend.last;
             if (dt > 0 && dt < 0.1) {
               if (s.v > 0) st.pend.vi += s.v * dt;
-              if (s.hm > 0.8) {
+              if (s.hm > 1.2) {
                 st.pend.hx += s.hm * Math.cos(s.ang) * dt;
                 st.pend.hy += s.hm * Math.sin(s.ang) * dt;
               }
             }
             st.pend.last = s.t;
-            if (s.t - st.pend.t0 > 0.16) {
+            if (s.v > st.pend.peak) st.pend.peak = s.v;
+            if (s.v < 1) { if (st.pend.low === null) st.pend.low = s.t; }
+            else st.pend.low = null;
+            if ((st.pend.low !== null && s.t - st.pend.low > 0.12) || s.t - st.pend.t0 > 1.2) {
+              var vi = st.pend.vi, peak = st.pend.peak;
               var hInt = Math.hypot(st.pend.hx, st.pend.hy);
-              var dev = Math.atan2(hInt, Math.max(st.pend.vi, 0.001)) * 180 / Math.PI;
-              if (dev <= st.tol) addSeg('모션 ' + dev.toFixed(0) + '°');
-              else fail(dev);
+              var dev = Math.atan2(hInt, Math.max(vi, 0.001)) * 180 / Math.PI;
               st.pend = null; st.refUntil = s.t + 0.5;
+              if (vi >= 0.25) { // 상승량이 너무 작으면 스트로크로 안 봄
+                if (peak > st.vmax) fail('너무 빨라요 (피크 ' + peak.toFixed(1) + ')');
+                else if (dev > st.tol) fail(dev.toFixed(0) + '° 어긋남');
+                else addSeg('모션 ' + dev.toFixed(0) + '°·피크 ' + peak.toFixed(1));
+              }
             }
           } else if (s.t > st.refUntil && s.v > st.thresh) {
-            st.pend = { t0: s.t, last: s.t, vi: 0, hx: 0, hy: 0 };
+            st.pend = { t0: s.t, last: s.t, vi: 0, hx: 0, hy: 0, peak: s.v, low: null };
           }
           m1.set(Math.abs(s.v) / 20, s.v.toFixed(1));
         };
         strokeTracker(area, function (sk) {
-          if (sk.dy > -60 || sk.dur > 600) return; // 위로 향한 스와이프만 판정 대상
+          if (sk.dy > -60) return; // 위로 향한 스와이프만 판정 대상
+          var speed = sk.len / Math.max(sk.dur, 1) * 1000;
           var devT = Math.atan2(Math.abs(sk.dx), -sk.dy) * 180 / Math.PI;
-          if (devT <= st.tol) addSeg('터치 ' + devT.toFixed(0) + '°');
-          else fail(devT);
+          if (speed > st.smax) fail('너무 빨라요 (' + speed.toFixed(0) + 'px/s)');
+          else if (devT > st.tol) fail(devT.toFixed(0) + '° 어긋남');
+          else addSeg('터치 ' + devT.toFixed(0) + '°');
         });
         show();
         this.reset = function () { seg = 0; done = 0; fails = 0; st.pend = null; api.count(0); state.textContent = ''; show(); };
@@ -820,17 +831,23 @@
       var deg = el < 0.6 ? 0 : el < 1.4 ? (el - 0.6) / 0.8 * 70 : el < 3.4 ? 70 : Math.max(0, 70 - (el - 3.4) / 0.6 * 70);
       var r = deg * Math.PI / 180;
       return { a: Z, g: { x: G * Math.sin(r), y: G * Math.cos(r), z: 0 }, rr: null }; }; }
-    else if (name === 'lift') { dur = 2.2; gen = function (el) {
+    else if (name === 'lift') { dur = 2.6; gen = function (el) {
+      if (el < 0.5) return flat(Z);
+      var e = el - 0.5;
+      if (e < 0.4) return flat({ x: 0, y: 0, z: 3.5 });
+      if (e < 0.8) return flat({ x: 0, y: 0, z: -3.5 });
+      return flat(Z); }; }
+    else if (name === 'lifttilt') { dur = 2.6; gen = function (el) {
+      if (el < 0.5) return flat(Z);
+      var e = el - 0.5;
+      if (e < 0.4) return flat({ x: 2.5, y: 0, z: 3.2 });
+      if (e < 0.8) return flat({ x: -2.5, y: 0, z: -3.2 });
+      return flat(Z); }; }
+    else if (name === 'liftfast') { dur = 2.2; gen = function (el) {
       if (el < 0.5) return flat(Z);
       var e = el - 0.5;
       if (e < 0.12) return flat({ x: 0, y: 0, z: 12 });
       if (e < 0.24) return flat({ x: 0, y: 0, z: -6 });
-      return flat(Z); }; }
-    else if (name === 'lifttilt') { dur = 2.2; gen = function (el) {
-      if (el < 0.5) return flat(Z);
-      var e = el - 0.5;
-      if (e < 0.12) return flat({ x: 4.5, y: 0, z: 11 });
-      if (e < 0.24) return flat({ x: -2, y: 0, z: -6 });
       return flat(Z); }; }
     else { log('SIM: 알 수 없음 ' + name); return; }
     var t0 = Math.max(performance.now() / 1000, __sim._t);
@@ -846,7 +863,7 @@
   window.__sim = __sim;
   if (location.search.indexOf('sim') >= 0) {
     var bar = $('simBar'); bar.style.display = 'flex';
-    ['flip', 'pan', 'whisk', 'shake', 'pour', 'lift', 'lifttilt'].forEach(function (nm) {
+    ['flip', 'pan', 'whisk', 'shake', 'pour', 'lift', 'lifttilt', 'liftfast'].forEach(function (nm) {
       var b = document.createElement('button'); b.textContent = 'SIM ' + nm;
       b.addEventListener('click', function () { __sim.run(nm); });
       bar.appendChild(b);
