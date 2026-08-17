@@ -563,25 +563,30 @@
       } },
 
     { id: 'shake', em: '🧂', nm: '흔들기', tag: '모션', needSensor: true,
-      inst: '소금통을 치듯 <b>아무 방향으로 흔들어요</b>. 흔든 횟수를 세요.',
+      inst: '소금통을 치듯 <b>아무 방향으로 흔들어요</b>. 흔드는 동안 숫자가 계속 올라가요.',
       build: function (body, api) {
-        var st = { thresh: 5, peak: peakCounter(0.12) };
+        var st = { thresh: 5 };
         var state = document.createElement('div'); state.className = 'stateTxt'; body.appendChild(state);
         var cnt = document.createElement('div'); cnt.className = 'bigcount'; cnt.textContent = '0'; body.appendChild(cnt);
         var gw = document.createElement('div'); gw.className = 'gaugeWrap'; body.appendChild(gw);
         var m1 = meterRow('흔들 세기');
         gw.appendChild(m1.el);
         gw.appendChild(slider('민감도', 3, 10, 0.5, st.thresh, function (v) { st.thresh = v; }));
-        var n = 0;
+        var n = 0, acc = 0, lastT = null;
         this.onMotion = function (s) {
-          if (!s.ready) return;
+          if (!s.ready) { lastT = s.t; return; }
           var active = s.meanAm > st.thresh;
           state.textContent = active ? '흔드는 중! 🧂' : '대기';
           state.className = 'stateTxt' + (active ? ' on' : '');
-          if (st.peak(s.am, s.t, st.thresh * 1.4)) { n++; cnt.textContent = n; api.count(n); }
+          // 흔드는 동안 0.2초마다 +1 (지속 시간 기반)
+          if (active && lastT !== null) {
+            acc += s.t - lastT;
+            while (acc >= 0.2) { acc -= 0.2; n++; cnt.textContent = n; api.count(n); }
+          } else if (!active) acc = 0;
+          lastT = s.t;
           m1.set(s.meanAm / 15, s.meanAm.toFixed(1));
         };
-        this.reset = function () { n = 0; cnt.textContent = '0'; api.count(0); };
+        this.reset = function () { n = 0; acc = 0; cnt.textContent = '0'; api.count(0); };
       } },
 
     { id: 'press', em: '🍔', nm: '누르기', tag: '터치', needSensor: false,
@@ -627,41 +632,61 @@
       } },
 
     { id: 'roll', em: '🍣', nm: '말기', tag: '모션', needSensor: false,
-      inst: '<b>모션</b>: 김밥을 말듯 폰을 앞으로 <b>굴리듯 기울였다 세우기</b>를 반복해요.<br><b>터치</b>: 화면을 위로 쓸어올려도 한 칸씩 말려요. 5칸이면 완성!',
+      inst: '<b>모션</b>: 폰을 <b>수직으로 곧게</b> 들어올려요 — 수직에서 <b>10° 이상 어긋나면 실패!</b> (허용 각도 조절 가능)<br><b>터치</b>: 화면을 위로 쓸어올려도 한 칸씩. 5칸이면 완성!',
       build: function (body, api) {
+        var st = { thresh: 6, tol: 10, refUntil: 0, pend: null };
         var state = document.createElement('div'); state.className = 'stateTxt'; body.appendChild(state);
         var prog = document.createElement('div'); prog.className = 'bigcount'; prog.style.fontSize = '34px'; body.appendChild(prog);
-        var area = document.createElement('div'); area.className = 'area';
+        var gw = document.createElement('div'); gw.className = 'gaugeWrap'; body.appendChild(gw);
+        var m1 = meterRow('수직 가속');
+        gw.appendChild(m1.el);
+        gw.appendChild(slider('민감도', 3, 12, 0.5, st.thresh, function (v) { st.thresh = v; }));
+        gw.appendChild(slider('허용 각도', 5, 45, 1, st.tol, function (v) { st.tol = v; }));
+        var area = document.createElement('div'); area.className = 'area'; area.style.minHeight = '160px';
         area.innerHTML = '<span class="cEmoji">🍙</span><span>위로 쓸어올리기 (터치 대체)</span>';
         body.appendChild(area);
         var cnt = document.createElement('div'); cnt.className = 'stateTxt'; body.appendChild(cnt);
-        var seg = 0, done = 0, acc = 0, lastT = null;
+        var seg = 0, done = 0, fails = 0;
         function show() {
-          var s = '';
-          for (var i = 0; i < 5; i++) s += i < seg ? '🍙' : '▫️';
-          prog.textContent = s;
-          cnt.textContent = '완성한 김밥: ' + done + '줄';
+          var t = '';
+          for (var i = 0; i < 5; i++) t += i < seg ? '🍙' : '▫️';
+          prog.textContent = t;
+          cnt.textContent = '완성한 김밥: ' + done + '줄 · 실패: ' + fails + '회';
         }
         function addSeg(src) {
           seg++;
           api.event(src + ' +1칸'); vib(15);
-          if (seg >= 5) { seg = 0; done++; api.count(done); state.textContent = '김밥 완성! 🍣'; state.className = 'stateTxt on'; vib(60); }
+          state.textContent = '한 칸 말았어요! (' + src + ')'; state.className = 'stateTxt on';
+          if (seg >= 5) { seg = 0; done++; api.count(done); state.textContent = '김밥 완성! 🍣'; vib(60); }
+          show();
+        }
+        function fail(dev) {
+          fails++;
+          api.event('실패 — ' + dev.toFixed(0) + '° 어긋남'); vib(80);
+          state.textContent = '❌ ' + dev.toFixed(0) + '° 어긋남 — 실패!'; state.className = 'stateTxt';
           show();
         }
         this.onMotion = function (s) {
-          if (!s.ready || !s.rr) { lastT = s.t; return; }
-          var w = Math.abs(s.rr.beta || 0);
-          if (lastT !== null && w > 90) {
-            acc += w * (s.t - lastT);
-            if (acc >= 150) { acc = 0; addSeg('모션'); }
+          if (!s.ready) return;
+          if (st.pend) {
+            // 임계 돌파 후 0.1초간 최대 가속 샘플로 방향 순수도 판정 (상승 성분만)
+            if (s.v > 0 && s.am > st.pend.am) { st.pend.am = s.am; st.pend.v = s.v; }
+            if (s.t - st.pend.t0 > 0.1) {
+              var dev = Math.acos(clamp(st.pend.v / (st.pend.am || 1), -1, 1)) * 180 / Math.PI;
+              if (dev <= st.tol) addSeg('모션 ' + dev.toFixed(0) + '°');
+              else fail(dev);
+              st.pend = null; st.refUntil = s.t + 0.5;
+            }
+          } else if (s.t > st.refUntil && s.v > st.thresh) {
+            st.pend = { t0: s.t, am: s.am, v: s.v };
           }
-          lastT = s.t;
+          m1.set(Math.abs(s.v) / 20, s.v.toFixed(1));
         };
         strokeTracker(area, function (sk) {
           if (sk.dy < -60 && sk.dur < 600) addSeg('터치');
         });
         show();
-        this.reset = function () { seg = 0; done = 0; acc = 0; api.count(0); state.textContent = ''; show(); };
+        this.reset = function () { seg = 0; done = 0; fails = 0; st.pend = null; api.count(0); state.textContent = ''; show(); };
       } },
 
     { id: 'mash', em: '🥔', nm: '으깨기', tag: '터치', needSensor: false,
@@ -684,27 +709,38 @@
         this.reset = function () { n = 0; cnt.textContent = '0'; api.count(0); };
       } },
 
-    { id: 'grate', em: '🧀', nm: '갈기', tag: '터치', needSensor: false,
-      inst: '치즈를 강판에 갈듯 <b>짧고 빠르게 문질러요</b>. 속도가 생명!',
+    { id: 'grate', em: '🧀', nm: '갈기', tag: '모션', needSensor: false,
+      inst: '치즈를 강판에 갈듯 <b>폰을 사방팔방 흔들어요</b> — 흔들림 하나하나가 1회로 카운트돼요. 화면을 문질러도 돼요.',
       build: function (body, api) {
-        var area = document.createElement('div'); area.className = 'area';
-        area.innerHTML = '<span class="cEmoji">🧀</span><span>짧게 빠르게 슥슥슥</span>';
-        body.appendChild(area);
+        var st = { thresh: 5, peak: peakCounter(0.12) };
+        var stateM = document.createElement('div'); stateM.className = 'stateTxt'; body.appendChild(stateM);
         var cnt = document.createElement('div'); cnt.className = 'bigcount'; cnt.textContent = '0'; body.appendChild(cnt);
-        var state = document.createElement('div'); state.className = 'stateTxt'; body.appendChild(state);
-        var n = 0, times = [];
+        var gw = document.createElement('div'); gw.className = 'gaugeWrap'; body.appendChild(gw);
+        var m1 = meterRow('흔들 세기');
+        gw.appendChild(m1.el);
+        gw.appendChild(slider('민감도', 3, 10, 0.5, st.thresh, function (v) { st.thresh = v; }));
+        var area = document.createElement('div'); area.className = 'area'; area.style.minHeight = '180px';
+        area.innerHTML = '<span class="cEmoji">🧀</span><span>문지르기 (터치 대체)</span>';
+        body.appendChild(area);
+        var n = 0;
+        function add(src) {
+          n++; cnt.textContent = n; api.count(n); vib(8);
+          area.classList.add('hit'); setTimeout(function () { area.classList.remove('hit'); }, 120);
+        }
+        this.onMotion = function (s) {
+          if (!s.ready) return;
+          var active = s.meanAm > st.thresh * 0.8;
+          stateM.textContent = active ? '갈리는 중! 🧀' : '대기';
+          stateM.className = 'stateTxt' + (active ? ' on' : '');
+          // 사방팔방 흔들기: 방향 무관 가속 피크 하나하나 = 1회
+          if (st.peak(s.am, s.t, st.thresh * 1.4)) add('모션');
+          m1.set(s.meanAm / 15, s.meanAm.toFixed(1));
+        };
         strokeTracker(area, function (sk) {
           if (sk.len < 25 || sk.dur > 400) return;
-          n++; times.push(performance.now());
-          times = times.filter(function (t) { return t > performance.now() - 2000; });
-          cnt.textContent = n; api.count(n);
-          var rate = (times.length / 2).toFixed(1);
-          state.textContent = '속도 ' + rate + '회/초' + (times.length >= 6 ? ' — 갈리는 중! 🧀' : '');
-          state.className = 'stateTxt' + (times.length >= 6 ? ' on' : '');
-          vib(8);
-          area.classList.add('hit'); setTimeout(function () { area.classList.remove('hit'); }, 120);
+          add('터치');
         });
-        this.reset = function () { n = 0; times = []; cnt.textContent = '0'; api.count(0); state.textContent = ''; };
+        this.reset = function () { n = 0; cnt.textContent = '0'; api.count(0); stateM.textContent = ''; };
       } },
   ];
 
@@ -783,9 +819,18 @@
       var deg = el < 0.6 ? 0 : el < 1.4 ? (el - 0.6) / 0.8 * 70 : el < 3.4 ? 70 : Math.max(0, 70 - (el - 3.4) / 0.6 * 70);
       var r = deg * Math.PI / 180;
       return { a: Z, g: { x: G * Math.sin(r), y: G * Math.cos(r), z: 0 }, rr: null }; }; }
-    else if (name === 'roll') { dur = 3.5; gen = function (el) {
+    else if (name === 'lift') { dur = 2.2; gen = function (el) {
       if (el < 0.5) return flat(Z);
-      return flat({ x: 0, y: 0, z: 0 }, { alpha: 0, beta: 220 * Math.abs(Math.sin(2 * Math.PI * 1.1 * (el - 0.5))), gamma: 0 }); }; }
+      var e = el - 0.5;
+      if (e < 0.12) return flat({ x: 0, y: 0, z: 12 });
+      if (e < 0.24) return flat({ x: 0, y: 0, z: -6 });
+      return flat(Z); }; }
+    else if (name === 'lifttilt') { dur = 2.2; gen = function (el) {
+      if (el < 0.5) return flat(Z);
+      var e = el - 0.5;
+      if (e < 0.12) return flat({ x: 4.5, y: 0, z: 11 });
+      if (e < 0.24) return flat({ x: -2, y: 0, z: -6 });
+      return flat(Z); }; }
     else { log('SIM: 알 수 없음 ' + name); return; }
     var t0 = Math.max(performance.now() / 1000, __sim._t);
     var n = function () { return (Math.random() - 0.5) * 0.5; };
@@ -800,7 +845,7 @@
   window.__sim = __sim;
   if (location.search.indexOf('sim') >= 0) {
     var bar = $('simBar'); bar.style.display = 'flex';
-    ['flip', 'pan', 'whisk', 'shake', 'pour', 'roll'].forEach(function (nm) {
+    ['flip', 'pan', 'whisk', 'shake', 'pour', 'lift', 'lifttilt'].forEach(function (nm) {
       var b = document.createElement('button'); b.textContent = 'SIM ' + nm;
       b.addEventListener('click', function () { __sim.run(nm); });
       bar.appendChild(b);
