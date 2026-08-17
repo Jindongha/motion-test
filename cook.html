@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>냠냠 쿠킹클래스 — 계란말이</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brown: #5B4230; --sub: #A07B5C; --accent: #C97B3D; --tan: #C9A987;
+    --orange: #E8703A; --orangeL: #FF9C4A; --gold: #FFC24B; --yolk: #FFD66B;
+    --green: #7BB661; --greenL: #C9E7B5; --cream: #FFF7EC;
+    --shadow: rgba(91,66,48,0.10); --shadow2: rgba(201,123,61,0.20);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overscroll-behavior: none; }
+  body { background: #F6E9DA; font-family: 'Gowun Dodum', sans-serif; color: var(--brown); overflow: hidden; }
+  .jua { font-family: 'Jua', sans-serif; }
+  #app { position: relative; max-width: 430px; height: 100dvh; margin: 0 auto; overflow: hidden; background: var(--cream); }
+
+  /* ---- 화면 전환 ---- */
+  .screen { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden;
+            transform: translateX(100%); transition: transform .45s cubic-bezier(.3,.8,.3,1); }
+  .screen.on { transform: translateX(0); }
+  .screen.off { transform: translateX(-30%); opacity: 0; transition: transform .45s cubic-bezier(.3,.8,.3,1), opacity .4s; }
+
+  /* ---- 상단 바 ---- */
+  .top { padding: max(16px, env(safe-area-inset-top)) 20px 0; display: flex; align-items: center; gap: 12px; }
+  .xbtn { width: 40px; height: 40px; flex: none; border-radius: 999px; background: #fff; box-shadow: 0 3px 8px rgba(91,66,48,.12);
+          display: flex; align-items: center; justify-content: center; color: var(--sub); font-size: 16px; border: 0; }
+  .pbar { flex: 1; height: 14px; background: #fff; border-radius: 999px; overflow: hidden; box-shadow: inset 0 2px 4px var(--shadow); }
+  .pbar > div { height: 100%; width: 0; background: linear-gradient(90deg, var(--gold), var(--orange)); border-radius: 999px; transition: width .6s cubic-bezier(.3,.8,.3,1); }
+  .pnum { font-family: 'Jua'; font-size: 13px; color: var(--sub); }
+
+  /* ---- 헤드 ---- */
+  .head { padding: 14px 24px 0; text-align: center; }
+  .badge { display: inline-block; color: #fff; font-family: 'Jua'; font-size: 13px; padding: 6px 14px; border-radius: 999px; }
+  .badge.motion { background: var(--orangeL); box-shadow: 0 4px 10px rgba(255,156,74,.4); }
+  .badge.touch { background: var(--green); box-shadow: 0 4px 10px rgba(123,182,97,.4); }
+  .head h1 { margin-top: 10px; font-family: 'Jua'; font-size: 26px; font-weight: 400; color: var(--brown); }
+  .head p { margin-top: 5px; font-size: 13.5px; color: var(--sub); }
+
+  /* ---- 씬 카드 ---- */
+  .mid { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 8px 22px 0; min-height: 0; }
+  .card { position: relative; width: 100%; aspect-ratio: 4/3; max-height: 46vh; border-radius: 26px;
+          box-shadow: 0 12px 28px var(--shadow2); touch-action: none; user-select: none; -webkit-user-select: none; }
+  .card .img { position: absolute; inset: 0; border-radius: 26px; overflow: hidden; }
+  .card .img img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; -webkit-user-drag: none; }
+  .tag { position: absolute; top: 12px; left: 12px; background: #fff; color: var(--accent); font-family: 'Jua'; font-size: 12px;
+         padding: 5px 10px; border-radius: 999px; box-shadow: 0 3px 8px rgba(91,66,48,.15); z-index: 4; }
+
+  /* ---- 게이지 카드 ---- */
+  .panel { width: 100%; background: #fff; border-radius: 18px; padding: 12px 16px; box-shadow: 0 4px 12px var(--shadow); }
+  .prow { display: flex; justify-content: space-between; font-family: 'Jua'; font-size: 13px; color: var(--sub); }
+  .prow .val { color: var(--orange); }
+  .track { margin-top: 8px; height: 12px; background: #FFF0DC; border-radius: 999px; position: relative; }
+  .track .zone { position: absolute; top: 0; bottom: 0; background: var(--greenL); border-radius: 999px; transition: box-shadow .2s; }
+  .track .zone.hot { box-shadow: 0 0 0 3px rgba(123,182,97,.35); }
+  .track .fillbar { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, var(--gold), #FF7A3D); border-radius: 999px; width: 0; }
+  .track .knob { position: absolute; top: -4px; width: 20px; height: 20px; margin-left: -10px; border-radius: 999px; background: var(--orange);
+                 border: 3px solid #fff; box-shadow: 0 2px 6px rgba(91,66,48,.25); left: 0; }
+  .guide { padding: 10px 24px calc(18px + env(safe-area-inset-bottom)); text-align: center; }
+  .guide .pill { display: inline-block; background: #fff; border-radius: 999px; padding: 10px 18px; box-shadow: 0 4px 12px var(--shadow);
+                 font-family: 'Jua'; font-size: 14px; color: var(--accent); transition: transform .15s; }
+  .guide .pill.pop { transform: scale(1.08); }
+
+  /* ---- 준비 화면 ---- */
+  #scrPrep { background: #FFF3D9; transform: translateX(0); }
+  .prepHero { display: flex; flex-direction: column; align-items: center; padding: 10px 24px 0; }
+  .heroCircle { width: 150px; height: 150px; border-radius: 999px; border: 6px solid #fff; box-shadow: 0 10px 24px rgba(201,123,61,.28);
+                overflow: hidden; animation: floaty 3s ease-in-out infinite; background: #FFE49B; }
+  .heroCircle img { width: 100%; height: 100%; object-fit: cover; }
+  .prepHero h1 { margin-top: 14px; font-family: 'Jua'; font-size: 30px; font-weight: 400; }
+  .chipRow { margin-top: 8px; display: flex; gap: 8px; }
+  .chip { font-size: 12px; background: #fff; color: var(--accent); padding: 5px 12px; border-radius: 999px; }
+  .prepSheet { flex: 1; margin-top: 18px; background: #fff; border-radius: 32px 32px 0 0; padding: 22px 22px 110px;
+               box-shadow: 0 -8px 20px rgba(91,66,48,.08); overflow: auto; min-height: 0; }
+  .prepSheet h2 { font-family: 'Jua'; font-size: 17px; font-weight: 400; }
+  .moveRow { margin-top: 10px; display: flex; align-items: center; gap: 12px; background: var(--cream); border-radius: 18px; padding: 12px 14px; }
+  .moveRow .ic { width: 46px; height: 46px; flex: none; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  .moveRow .nm { font-family: 'Jua'; font-size: 15px; }
+  .moveRow .how { font-size: 12px; color: var(--sub); margin-top: 2px; }
+  .moveRow .kind { margin-left: auto; flex: none; font-size: 10px; font-family: 'Jua'; color: #fff; padding: 4px 10px; border-radius: 999px; }
+  .startWrap { position: absolute; bottom: 0; left: 0; right: 0; padding: 14px 24px calc(24px + env(safe-area-inset-bottom));
+               background: linear-gradient(180deg, rgba(255,255,255,0), #fff 40%); }
+  #startBtn { width: 100%; background: var(--orange); color: #FFF7EE; font-family: 'Jua'; font-size: 19px; padding: 17px; border: 0;
+              border-radius: 999px; box-shadow: 0 8px 18px rgba(232,112,58,.4); transition: transform .12s; }
+  #startBtn:active { transform: scale(.96); }
+
+  /* ---- 단계별 배경 ---- */
+  #scrStir { background: linear-gradient(180deg, #FFE9C2 0%, var(--cream) 55%); }
+  #scrPour, #scrPour2 { background: linear-gradient(180deg, #FFE0B8 0%, var(--cream) 55%); }
+  #scrRoll, #scrRoll2 { background: linear-gradient(180deg, #E7F0DC 0%, var(--cream) 55%); }
+  #scrDone { background: linear-gradient(180deg, #FFDFA1 0%, var(--cream) 60%); }
+
+  /* ---- 휘젓기 ---- */
+  #batter { position: absolute; left: 24%; top: 20%; width: 37%; aspect-ratio: 1; border-radius: 999px; pointer-events: none; z-index: 2; }
+  #batter img { width: 100%; height: 100%; }
+
+  /* ---- 붓기 ---- */
+  .pourCardWrap { width: 100%; transition: transform .12s linear; transform-origin: 50% 90%; }
+  .stream { position: absolute; left: 50%; top: -6px; width: 10px; height: 0; margin-left: -5px; z-index: 3;
+            background: linear-gradient(180deg, #FFE49B, var(--yolk)); border-radius: 0 0 8px 8px; opacity: 0; transition: opacity .15s; }
+  .panFillCover { position: absolute; left: 23%; top: 12%; width: 54%; height: 44%; border-radius: 14px; background: #33383E; z-index: 1; }
+
+  /* ---- 말기 트랙 ---- */
+  .rollPanel { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 16px 10px; }
+  .rollTrack { position: relative; width: 288px; max-width: 100%; height: 56px; }
+  .rollSheet { position: absolute; right: 0; top: 50%; margin-top: -14px; height: 28px; background: var(--yolk);
+               border: 3px solid #E8A13C; border-radius: 10px; }
+  .rollBall { position: absolute; top: 50%; margin-top: -22px; width: 44px; height: 44px; background: #F3B94C; border: 3px solid #E8A13C;
+              border-radius: 14px; display: flex; align-items: center; justify-content: center; }
+  .rollBall > div { width: 18px; height: 18px; border-radius: 999px; border: 3px solid #E8A13C; }
+  .rollHint { font-family: 'Jua'; font-size: 12px; color: var(--accent); }
+  .swipeArrows { position: absolute; right: 18px; top: 20px; bottom: 20px; display: flex; flex-direction: column; justify-content: flex-end;
+                 align-items: center; gap: 6px; pointer-events: none; z-index: 4; }
+  .swipeArrows span { font-family: 'Jua'; font-size: 20px; color: var(--orange); animation: riseHint 1.6s ease-in-out infinite; }
+  .swipeArrows span:nth-child(2) { animation-delay: .2s; }
+  .swipeArrows .fingertip { width: 44px; height: 44px; border-radius: 999px; background: rgba(255,255,255,.85); border: 3px solid var(--orange);
+                display: flex; align-items: center; justify-content: center; font-size: 19px; animation: riseHint 1.6s ease-in-out .4s infinite; }
+
+  /* ---- 완성 ---- */
+  #scrDone { align-items: center; text-align: center; padding: 0 24px; }
+  .doneKicker { margin-top: max(60px, calc(env(safe-area-inset-top) + 44px)); font-family: 'Jua'; font-size: 16px; color: var(--accent); }
+  .doneTitle { margin-top: 4px; font-family: 'Jua'; font-size: 31px; }
+  .doneCircle { margin-top: 18px; width: 180px; height: 180px; border-radius: 999px; background: #fff; border: 6px solid #FFE49B;
+                box-shadow: 0 14px 34px rgba(201,123,61,.28); overflow: hidden; animation: floaty 3s ease-in-out infinite; }
+  .doneCircle img { width: 100%; height: 100%; object-fit: cover; }
+  .doneBadge { margin-top: 16px; background: var(--green); color: #fff; font-family: 'Jua'; font-size: 21px; padding: 8px 26px;
+               border-radius: 999px; box-shadow: 0 6px 16px rgba(123,182,97,.4); }
+  .doneSub { margin-top: 8px; font-family: 'Jua'; font-size: 15px; color: var(--sub); }
+  .doneList { margin-top: 14px; width: 100%; background: #fff; border-radius: 22px; padding: 14px 18px; box-shadow: 0 6px 16px var(--shadow);
+              display: flex; flex-direction: column; gap: 9px; text-align: left; }
+  .doneList div { display: flex; justify-content: space-between; font-size: 13.5px; color: var(--sub); }
+  .doneList b { font-family: 'Jua'; font-weight: 400; font-size: 13px; color: var(--green); }
+  .doneBtns { margin-top: 14px; width: 100%; display: flex; gap: 10px; }
+  .doneBtns button { font-family: 'Jua'; font-size: 16px; padding: 15px; border: 0; border-radius: 999px; }
+  .btnGhost { flex: 1; background: #fff; color: var(--accent); box-shadow: 0 4px 12px var(--shadow); }
+  .btnMain { flex: 1.4; background: var(--orange); color: #FFF7EE; box-shadow: 0 8px 18px rgba(232,112,58,.4); }
+  .doneFoot { margin-top: 12px; font-size: 13px; color: var(--tan); }
+
+  /* ---- 성공 스탬프 오버레이 ---- */
+  #stamp { position: absolute; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center;
+           background: rgba(91,66,48,.18); backdrop-filter: blur(2px); }
+  #stamp .disc { width: 190px; height: 190px; border-radius: 999px; background: #fff; box-shadow: 0 18px 44px rgba(91,66,48,.3);
+                 display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+  #stamp .em { font-size: 52px; }
+  #stamp .tx { font-family: 'Jua'; font-size: 30px; color: var(--green); }
+
+  /* ---- 파티클/기타 ---- */
+  .fx { position: absolute; pointer-events: none; z-index: 30; }
+  @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  @keyframes riseHint { 0% { transform: translateY(10px); opacity: .25; } 55% { transform: translateY(-6px); opacity: 1; } 100% { transform: translateY(-14px); opacity: 0; } }
+  #simBar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 99; display: none; gap: 5px; flex-wrap: wrap; justify-content: center;
+            background: #000c; padding: 6px; }
+  #simBar button { padding: 5px 9px; font-size: 11px; border-radius: 8px; border: 1px solid #555; background: #222; color: #eee; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 준비 -->
+  <section class="screen on" id="scrPrep">
+    <div class="top" style="justify-content: space-between;">
+      <div class="xbtn">←</div>
+      <div class="chip" style="box-shadow: 0 3px 8px var(--shadow);">냠냠 쿠킹클래스 · 프로토타입</div>
+    </div>
+    <div class="prepHero">
+      <div class="heroCircle"><img src="assets/eggroll2-6.png" alt="계란말이"></div>
+      <h1>계란말이</h1>
+      <div class="chipRow"><span class="chip">난이도 ★★☆</span><span class="chip">약 2분</span><span class="chip">동작 4개</span></div>
+    </div>
+    <div class="prepSheet">
+      <h2>이런 동작으로 요리해요</h2>
+      <div class="moveRow"><div class="ic" style="background:#FFE9C2">🥚</div><div><div class="nm">1. 휘젓기</div><div class="how">빙글빙글 저어 계란을 풀어요</div></div><span class="kind" style="background:#FF9C4A">모션</span></div>
+      <div class="moveRow"><div class="ic" style="background:#FFF0B8">🥣</div><div><div class="nm">2. 붓기</div><div class="how">폰을 기울여 팬에 부어요 (자이로)</div></div><span class="kind" style="background:#FF9C4A">모션</span></div>
+      <div class="moveRow"><div class="ic" style="background:#E7F0DC">🌀</div><div><div class="nm">3. 말기</div><div class="how">천천히 위로 쓸어올려 돌돌 말아요</div></div><span class="kind" style="background:#7BB661">터치</span></div>
+      <div class="moveRow"><div class="ic" style="background:#FFDFD6">🍳</div><div><div class="nm">4. 한 번 더!</div><div class="how">계란물을 더 붓고 다시 말아 두께를 만들어요</div></div><span class="kind" style="background:#7BB661">모션+터치</span></div>
+    </div>
+    <div class="startWrap"><button id="startBtn" class="jua">요리 시작! 🍳</button></div>
+  </section>
+
+  <!-- 1단계 휘젓기 -->
+  <section class="screen" id="scrStir">
+    <div class="top"><button class="xbtn xquit">✕</button><div class="pbar"><div style="width:25%"></div></div><div class="pnum">1/4</div></div>
+    <div class="head">
+      <span class="badge motion">📱 모션 인식 중</span>
+      <h1>빙글빙글 저어요!</h1>
+      <p>계란이 보들보들 풀리도록 골고루~</p>
+    </div>
+    <div class="mid">
+      <div class="card" id="stirCard">
+        <div class="img"><img src="assets/eggroll2-3.png" alt=""></div>
+        <div id="batter"><img src="assets/eggroll2-batter.png" alt=""></div>
+        <div class="tag">폰으로 원을 그려도, 손가락으로 저어도 OK</div>
+      </div>
+      <div class="panel">
+        <div class="prow"><span>계란 풀기</span><span class="val" id="stirVal">0%</span></div>
+        <div class="track"><div class="fillbar" id="stirFill"></div></div>
+      </div>
+    </div>
+    <div class="guide"><span class="pill" id="stirPill">그릇 위에서 빙글빙글 🥚</span></div>
+  </section>
+
+  <!-- 2단계 붓기 -->
+  <section class="screen" id="scrPour">
+    <div class="top"><button class="xbtn xquit">✕</button><div class="pbar"><div style="width:50%"></div></div><div class="pnum">2/4</div></div>
+    <div class="head">
+      <span class="badge motion">📱 모션 인식 중</span>
+      <h1>폰을 기울여 부어요!</h1>
+      <p>계란물을 팬에 천천히 골고루~</p>
+    </div>
+    <div class="mid">
+      <div class="pourCardWrap" id="pourTilt">
+        <div class="card" id="pourCard">
+          <div class="img"><img src="assets/eggroll2-4.png" alt=""></div>
+          <div class="panFillCover" id="pourCover"></div>
+          <div class="stream" id="pourStream"></div>
+          <div class="tag">폰과 함께 기울여요 📱</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="prow"><span>기울기 각도</span><span class="val" id="pourVal">0°</span></div>
+        <div class="track" id="pourTrack">
+          <div class="zone" id="pourZone" style="left:28%; width:33%"></div>
+          <div class="knob" id="pourKnob"></div>
+        </div>
+        <div class="prow" style="margin-top:8px"><span>채움</span><span class="val" id="pourFillVal">0%</span></div>
+        <div class="track"><div class="fillbar" id="pourFillBar"></div></div>
+      </div>
+    </div>
+    <div class="guide"><span class="pill" id="pourPill">초록 구간을 유지하며 부어요 🥣</span></div>
+  </section>
+
+  <!-- 3단계 말기 -->
+  <section class="screen" id="scrRoll">
+    <div class="top"><button class="xbtn xquit">✕</button><div class="pbar"><div style="width:75%"></div></div><div class="pnum">3/4</div></div>
+    <div class="head">
+      <span class="badge touch">👆 터치 동작</span>
+      <h1>천천히 말아올려요!</h1>
+      <p>아래에서 위로, 천천히 일정한 속도로~</p>
+    </div>
+    <div class="mid">
+      <div class="card rollCard" id="rollCard">
+        <div class="img"><img src="assets/eggroll2-5.png" alt=""></div>
+        <div class="swipeArrows"><span>↑</span><span>↑</span><div class="fingertip">👆</div></div>
+        <div class="tag">90° 위로 천천히!</div>
+      </div>
+      <div class="panel rollPanel">
+        <div class="rollTrack" id="rollTrack">
+          <div class="rollSheet" id="rollSheet"></div>
+          <div class="rollBall" id="rollBall"><div></div></div>
+        </div>
+        <div class="rollHint" id="rollHint">쓸어올릴 때마다 한 칸씩 돌돌!</div>
+      </div>
+    </div>
+    <div class="guide"><span class="pill" id="rollPill">화면을 위로 스으윽~ 🌀</span></div>
+  </section>
+
+  <!-- 4단계: 붓기 반복 -->
+  <section class="screen" id="scrPour2">
+    <div class="top"><button class="xbtn xquit">✕</button><div class="pbar"><div style="width:88%"></div></div><div class="pnum">4/4</div></div>
+    <div class="head">
+      <span class="badge motion">📱 모션 인식 중</span>
+      <h1>계란물을 더 부어요!</h1>
+      <p>도톰한 계란말이의 비밀은 한 겹 더!</p>
+    </div>
+    <div class="mid">
+      <div class="pourCardWrap" id="pour2Tilt">
+        <div class="card" id="pour2Card">
+          <div class="img"><img src="assets/eggroll2-4.png" alt=""></div>
+          <div class="panFillCover" id="pour2Cover"></div>
+          <div class="stream" id="pour2Stream"></div>
+          <div class="tag">폰과 함께 기울여요 📱</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="prow"><span>기울기 각도</span><span class="val" id="pour2Val">0°</span></div>
+        <div class="track" id="pour2Track">
+          <div class="zone" id="pour2Zone" style="left:28%; width:33%"></div>
+          <div class="knob" id="pour2Knob"></div>
+        </div>
+        <div class="prow" style="margin-top:8px"><span>채움</span><span class="val" id="pour2FillVal">0%</span></div>
+        <div class="track"><div class="fillbar" id="pour2FillBar"></div></div>
+      </div>
+    </div>
+    <div class="guide"><span class="pill" id="pour2Pill">초록 구간을 유지하며 부어요 🥣</span></div>
+  </section>
+
+  <!-- 4단계: 말기 반복 -->
+  <section class="screen" id="scrRoll2">
+    <div class="top"><button class="xbtn xquit">✕</button><div class="pbar"><div style="width:96%"></div></div><div class="pnum">4/4</div></div>
+    <div class="head">
+      <span class="badge touch">👆 터치 동작</span>
+      <h1>한 번 더 돌돌!</h1>
+      <p>마지막까지 천천히, 예쁘게~</p>
+    </div>
+    <div class="mid">
+      <div class="card rollCard" id="roll2Card">
+        <div class="img"><img src="assets/eggroll2-5.png" alt=""></div>
+        <div class="swipeArrows"><span>↑</span><span>↑</span><div class="fingertip">👆</div></div>
+        <div class="tag">한 번 더 말면 완성! 🌀</div>
+      </div>
+      <div class="panel rollPanel">
+        <div class="rollTrack" id="roll2Track">
+          <div class="rollSheet" id="roll2Sheet"></div>
+          <div class="rollBall" id="roll2Ball"><div></div></div>
+        </div>
+        <div class="rollHint" id="roll2Hint">쓸어올릴 때마다 한 칸씩 돌돌!</div>
+      </div>
+    </div>
+    <div class="guide"><span class="pill" id="roll2Pill">화면을 위로 스으윽~ 🌀</span></div>
+  </section>
+
+  <!-- 완성 -->
+  <section class="screen" id="scrDone">
+    <div class="doneKicker">🎉 요리 완성!</div>
+    <div class="doneTitle jua">계란말이 마스터!</div>
+    <div class="doneCircle"><img src="assets/eggroll2-6.png" alt="계란말이 완성"></div>
+    <div class="doneBadge jua">완성!</div>
+    <div class="doneSub">4단계 중 4단계 성공</div>
+    <div class="doneList">
+      <div><span>1. 휘젓기 (모션)</span><b>성공 ✓</b></div>
+      <div><span>2. 붓기 (자이로)</span><b>성공 ✓</b></div>
+      <div><span>3. 말기 (슬로우 터치)</span><b>성공 ✓</b></div>
+      <div><span>4. 한 번 더! (모션+터치)</span><b>성공 ✓</b></div>
+    </div>
+    <div class="doneBtns">
+      <button class="btnGhost jua" id="retryBtn">다시 도전</button>
+      <button class="btnMain jua" id="nextBtn">다음 요리 →</button>
+    </div>
+    <div class="doneFoot">완성요리에 <b style="color:var(--accent)">계란말이</b>가 추가됐어요 🏅</div>
+  </section>
+
+  <!-- 성공 스탬프 -->
+  <div id="stamp"><div class="disc"><div class="em">🥚</div><div class="tx">성공!</div></div></div>
+</div>
+<div id="simBar"></div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
+  function vib(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
+  // 사운드 훅: 나중에 오디오를 여기 연결
+  function sfx(name) { /* stir | pourLoop | rollSnap | stamp | confetti | fail */ }
+
+  // ================= 파티클 =================
+  var app = $('app');
+  function burst(x, y, emojis, n, spread) {
+    for (var i = 0; i < n; i++) {
+      var sp = document.createElement('span');
+      sp.className = 'fx';
+      sp.textContent = emojis[i % emojis.length];
+      sp.style.cssText = 'left:' + x + 'px;top:' + y + 'px;font-size:' + (14 + Math.random() * 12) + 'px';
+      app.appendChild(sp);
+      var a = Math.random() * Math.PI * 2, d = (spread || 70) * (0.5 + Math.random());
+      sp.animate([
+        { transform: 'translate(0,0) scale(1)', opacity: 1 },
+        { transform: 'translate(' + Math.cos(a) * d + 'px,' + (Math.sin(a) * d - 40) + 'px) scale(.6) rotate(' + (Math.random() * 240 - 120) + 'deg)', opacity: 0 }
+      ], { duration: 650 + Math.random() * 350, easing: 'cubic-bezier(.2,.7,.4,1)' })
+        .onfinish = (function (el) { return function () { el.remove(); }; })(sp);
+    }
+  }
+  function floatUp(hostRect, emoji) {
+    var sp = document.createElement('span');
+    sp.className = 'fx';
+    sp.textContent = emoji;
+    sp.style.cssText = 'left:' + (hostRect.left + hostRect.width * (0.25 + Math.random() * 0.5)) + 'px;top:' + (hostRect.top + hostRect.height * 0.45) + 'px;font-size:15px';
+    document.body.appendChild(sp);
+    sp.animate([
+      { transform: 'translateY(0) scale(.6)', opacity: 0 },
+      { transform: 'translateY(-18px) scale(1)', opacity: 1, offset: 0.4 },
+      { transform: 'translateY(-44px) scale(.9)', opacity: 0 }
+    ], { duration: 900, easing: 'ease-out' }).onfinish = function () { sp.remove(); };
+  }
+
+  // ================= 모션 엔진 (경량) =================
+  var isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.userAgent.indexOf('Mac') >= 0 && 'ontouchend' in document);
+  var invert = isIOS;
+  var Engine = (function () {
+    var gLP = null, warmupUntil = 0, prevAng = null, sensorOn = false;
+    function process(t, ax, ay, az, gx, gy, gz) {
+      var s = invert ? -1 : 1;
+      ax *= s; ay *= s; az *= s; gx *= s; gy *= s; gz *= s;
+      if (!gLP) { gLP = { x: gx, y: gy, z: gz }; warmupUntil = t + 0.35; prevAng = null; }
+      var LP = 0.88;
+      gLP.x = LP * gLP.x + (1 - LP) * gx; gLP.y = LP * gLP.y + (1 - LP) * gy; gLP.z = LP * gLP.z + (1 - LP) * gz;
+      var gm = Math.sqrt(gLP.x * gLP.x + gLP.y * gLP.y + gLP.z * gLP.z) || 1;
+      var up = { x: gLP.x / gm, y: gLP.y / gm, z: gLP.z / gm };
+      var v = ax * up.x + ay * up.y + az * up.z;
+      var h = { x: ax - v * up.x, y: ay - v * up.y, z: az - v * up.z };
+      var hm = Math.sqrt(h.x * h.x + h.y * h.y + h.z * h.z);
+      var e1 = { x: 1 - up.x * up.x, y: -up.x * up.y, z: -up.x * up.z };
+      var m1 = Math.sqrt(e1.x * e1.x + e1.y * e1.y + e1.z * e1.z);
+      if (m1 < 0.1) { e1 = { x: -up.y * up.x, y: 1 - up.y * up.y, z: -up.y * up.z }; m1 = Math.sqrt(e1.x * e1.x + e1.y * e1.y + e1.z * e1.z); }
+      e1 = { x: e1.x / m1, y: e1.y / m1, z: e1.z / m1 };
+      var e2 = { x: up.y * e1.z - up.z * e1.y, y: up.z * e1.x - up.x * e1.z, z: up.x * e1.y - up.y * e1.x };
+      var ang = Math.atan2(h.x * e2.x + h.y * e2.y + h.z * e2.z, h.x * e1.x + h.y * e1.y + h.z * e1.z);
+      var dAng = null;
+      if (hm > 1.2) {
+        if (prevAng !== null) {
+          dAng = ang - prevAng;
+          while (dAng > Math.PI) dAng -= 2 * Math.PI;
+          while (dAng < -Math.PI) dAng += 2 * Math.PI;
+        }
+        prevAng = ang;
+      } else prevAng = null;
+      var tiltDeg = Math.acos(clamp(up.y, -1, 1)) * 180 / Math.PI;
+      var sample = { t: t, hm: hm, dAng: dAng, tiltDeg: tiltDeg, ready: t >= warmupUntil };
+      if (Game.active && Game.active.onMotion) Game.active.onMotion(sample);
+    }
+    function onDev(e) {
+      var g = e.accelerationIncludingGravity;
+      if (!g || g.x === null) return;
+      var a = e.acceleration, ax, ay, az;
+      if (a && a.x !== null) { ax = a.x; ay = a.y; az = a.z; }
+      else if (gLP) { var s2 = invert ? -1 : 1; ax = g.x - gLP.x * s2; ay = g.y - gLP.y * s2; az = g.z - gLP.z * s2; }
+      else { ax = 0; ay = 0; az = 0; }
+      process(performance.now() / 1000, ax, ay, az, g.x, g.y, g.z);
+    }
+    function start(done) {
+      var DME = window.DeviceMotionEvent;
+      if (!DME) { done(false); return; }
+      if (typeof DME.requestPermission === 'function') {
+        DME.requestPermission().then(function (r) {
+          if (r === 'granted') { attach(); done(true); } else done(false);
+        }).catch(function () { done(false); });
+      } else { attach(); done(true); }
+    }
+    function attach() { sensorOn = true; window.addEventListener('devicemotion', onDev); }
+    return { start: start, process: process, isOn: function () { return sensorOn; } };
+  })();
+
+  // ================= 화면 전환 & 스탬프 =================
+  var Game = { active: null };
+  var order = ['scrStir', 'scrPour', 'scrRoll', 'scrPour2', 'scrRoll2', 'scrDone'];
+  var controllers = {};
+  var current = 'scrPrep';
+  function goto(id) {
+    var prev = $(current), next = $(id);
+    prev.classList.remove('on'); prev.classList.add('off');
+    next.classList.add('on');
+    setTimeout(function () {
+      // 전환 애니메이션 없이 원위치로 순간이동 (고스트 슬라이드 방지)
+      prev.style.transition = 'none';
+      prev.classList.remove('off');
+      void prev.offsetWidth;
+      prev.style.transition = '';
+    }, 500);
+    current = id;
+    Game.active = controllers[id] || null;
+    if (Game.active && Game.active.enter) Game.active.enter();
+    if (id === 'scrDone') doneCelebrate();
+  }
+  function stepClear(emoji, nextId) {
+    sfx('stamp'); vib(60);
+    var st = $('stamp');
+    st.querySelector('.em').textContent = emoji;
+    st.style.display = 'flex';
+    var r = app.getBoundingClientRect();
+    st.querySelector('.disc').animate([
+      { transform: 'scale(0) rotate(-14deg)' },
+      { transform: 'scale(1.15) rotate(3deg)', offset: 0.65 },
+      { transform: 'scale(1) rotate(0deg)' }
+    ], { duration: 420, easing: 'cubic-bezier(.2,.8,.3,1.2)' });
+    setTimeout(function () { burst(r.width / 2, r.height / 2 - 40, ['✨', '🥚', '⭐'], 10, 90); }, 180);
+    setTimeout(function () {
+      st.style.display = 'none';
+      goto(nextId);
+    }, 1050);
+  }
+
+  // ================= 1단계: 휘젓기 =================
+  controllers.scrStir = (function () {
+    var TARGET = 6; // 목표 회전수
+    var cum = 0, doneFlag = false, lastBubble = 0, speed = 0;
+    var card = $('stirCard'), batter = $('batter'), fill = $('stirFill'), val = $('stirVal'), pill = $('stirPill');
+    function add(dRad, t) {
+      if (doneFlag) return;
+      cum += dRad;
+      speed = speed * 0.9 + Math.abs(dRad) * 6; // 대략적 속도 지표
+      var rev = Math.abs(cum) / (2 * Math.PI);
+      var deg = cum * 180 / Math.PI;
+      batter.style.transform = 'rotate(' + deg + 'deg)';
+      card.style.transform = 'rotate(' + (Math.sin(cum * 0.7) * clamp(speed, 0, 2)) + 'deg)';
+      var pct = clamp(rev / TARGET * 100, 0, 100);
+      fill.style.width = pct + '%';
+      val.textContent = pct.toFixed(0) + '%';
+      if (rev - lastBubble > 0.5) {
+        lastBubble = rev;
+        floatUp(card.getBoundingClientRect(), Math.random() < 0.5 ? '🫧' : '✨');
+        sfx('stir'); vib(6);
+        pill.classList.add('pop');
+        setTimeout(function () { pill.classList.remove('pop'); }, 150);
+        pill.textContent = rev < TARGET * 0.5 ? '좋아요, 빙글빙글~ 🥚' : rev < TARGET * 0.85 ? '보들보들해지는 중! 🍥' : '거의 다 풀렸어요!';
+      }
+      if (rev >= TARGET) {
+        doneFlag = true;
+        card.animate([
+          { transform: 'scale(1)' }, { transform: 'scale(1.05)' }, { transform: 'scale(1)' }
+        ], { duration: 300 });
+        setTimeout(function () { stepClear('🥚', 'scrPour'); }, 350);
+      }
+    }
+    // 터치: 원 드래그
+    var last = null;
+    card.addEventListener('pointerdown', function (e) { try { card.setPointerCapture(e.pointerId); } catch (x) {} last = angOf(e); e.preventDefault(); });
+    card.addEventListener('pointermove', function (e) {
+      if (last === null) return;
+      var a = angOf(e), d = a - last;
+      while (d > Math.PI) d -= 2 * Math.PI;
+      while (d < -Math.PI) d += 2 * Math.PI;
+      last = a; add(d);
+    });
+    card.addEventListener('pointerup', function () { last = null; });
+    card.addEventListener('pointercancel', function () { last = null; });
+    function angOf(e) {
+      var r = card.getBoundingClientRect();
+      return Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2));
+    }
+    return {
+      enter: function () {},
+      onMotion: function (s) {
+        if (!s.ready) return;
+        if (s.dAng !== null && s.hm > 2.5) add(s.dAng, s.t);
+      },
+      reset: function () { cum = 0; doneFlag = false; lastBubble = 0; fill.style.width = '0'; val.textContent = '0%'; }
+    };
+  })();
+
+  // ================= 붓기 (2단계 & 4단계 전반) =================
+  function makePour(ids, target, nextId, stampEmoji) {
+    var tiltWrap = $(ids.tilt), card = $(ids.card), cover = $(ids.cover), stream = $(ids.stream);
+    var knob = $(ids.knob), zone = $(ids.zone), val = $(ids.val), fillVal = $(ids.fillVal), fillBar = $(ids.fillBar), pill = $(ids.pill);
+    var ZLO = 25, ZHI = 55, MAXA = 90;
+    var fillPct = 0, doneFlag = false, baseTilt = null, baseSamples = [], lastT = null, dropAcc = 0;
+    var touchDrag = null, touchAngle = 0;
+    function setAngle(aDeg, t) {
+      if (doneFlag) return;
+      var a = clamp(aDeg, 0, MAXA);
+      val.textContent = a.toFixed(0) + '°' + (a >= ZLO && a <= ZHI ? ' · 딱 좋아요!' : '');
+      knob.style.left = (a / MAXA * 100) + '%';
+      zone.classList.toggle('hot', a >= ZLO && a <= ZHI);
+      tiltWrap.style.transform = 'rotate(' + (-a * 0.45) + 'deg)';
+      var pouring = a >= ZLO;
+      var rate = pouring ? clamp((a - ZLO + 6) / (ZHI - ZLO + 6), 0.15, 1.4) : 0;
+      if (a > ZHI + 12) rate = 1.7;
+      // 계란물 줄기
+      stream.style.opacity = pouring ? 1 : 0;
+      stream.style.height = pouring ? '46%' : '0';
+      stream.style.width = (8 + rate * 12) + 'px';
+      if (lastT !== null && pouring) {
+        fillPct = clamp(fillPct + rate * (t - lastT) * 26, 0, 100);
+        dropAcc += (t - lastT) * rate;
+        if (dropAcc > 0.16) { dropAcc = 0; drop(); sfx('pourLoop'); }
+      }
+      lastT = t;
+      cover.style.opacity = 1 - fillPct / 100;
+      fillVal.textContent = fillPct.toFixed(0) + '%';
+      fillBar.style.width = fillPct + '%';
+      pill.textContent = !pouring ? '초록 구간까지 기울여요 🥣'
+        : a > ZHI + 12 ? '콸콸콸!! 조금만 살살~ 😅'
+        : a > ZHI ? '살짝만 낮춰요~' : '잘 붓고 있어요! 🍳';
+      if (fillPct >= target && !doneFlag) {
+        doneFlag = true;
+        tiltWrap.style.transform = 'rotate(0deg)';
+        stream.style.opacity = 0;
+        card.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.05)' }, { transform: 'scale(1)' }], { duration: 300 });
+        setTimeout(function () { stepClear(stampEmoji, nextId); }, 350);
+      }
+    }
+    function drop() {
+      var r = card.getBoundingClientRect();
+      var sp = document.createElement('span');
+      sp.className = 'fx';
+      sp.style.cssText = 'left:' + (r.left + r.width / 2 + (Math.random() * 26 - 13)) + 'px;top:' + (r.top + r.height * 0.42) + 'px;' +
+        'width:8px;height:8px;border-radius:999px;background:#FFD66B;border:1.5px solid #E8A13C;';
+      document.body.appendChild(sp);
+      var dx = Math.random() * 40 - 20;
+      sp.animate([
+        { transform: 'translate(0,0) scale(1)', opacity: 1 },
+        { transform: 'translate(' + dx + 'px,26px) scale(.6)', opacity: 0 }
+      ], { duration: 420, easing: 'ease-in' }).onfinish = function () { sp.remove(); };
+    }
+    // 터치 대체: 카드 누르고 위/아래 드래그로 기울이기 (센서 없을 때)
+    card.addEventListener('pointerdown', function (e) {
+      if (Engine.isOn()) return;
+      try { card.setPointerCapture(e.pointerId); } catch (x) {}
+      touchDrag = e.clientY; e.preventDefault();
+    });
+    card.addEventListener('pointermove', function (e) {
+      if (touchDrag === null) return;
+      touchAngle = clamp((touchDrag - e.clientY) * 0.45, 0, MAXA);
+    });
+    function tEnd() { touchDrag = null; touchAngle = 0; }
+    card.addEventListener('pointerup', tEnd);
+    card.addEventListener('pointercancel', tEnd);
+    var loopTimer = null;
+    function touchLoop() {
+      if (loopTimer) return;
+      loopTimer = setInterval(function () {
+        if (!Engine.isOn() && !doneFlag) setAngle(touchAngle, performance.now() / 1000);
+      }, 33);
+    }
+    return {
+      enter: function () {
+        baseTilt = null; baseSamples = []; lastT = null;
+        if (!Engine.isOn()) { pill.textContent = '팬을 누르고 위로 끌면 기울어요 (터치 모드)'; touchLoop(); }
+      },
+      onMotion: function (s) {
+        if (!s.ready) return;
+        if (baseSamples.length < 30) { baseSamples.push(s.tiltDeg); if (baseSamples.length === 30) { var sum = 0; baseSamples.forEach(function (x) { sum += x; }); baseTilt = sum / 30; } return; }
+        setAngle(s.tiltDeg - baseTilt, s.t);
+      },
+      reset: function () { fillPct = 0; doneFlag = false; if (loopTimer) { clearInterval(loopTimer); loopTimer = null; } }
+    };
+  }
+  controllers.scrPour = makePour({ tilt: 'pourTilt', card: 'pourCard', cover: 'pourCover', stream: 'pourStream', knob: 'pourKnob', zone: 'pourZone', val: 'pourVal', fillVal: 'pourFillVal', fillBar: 'pourFillBar', pill: 'pourPill' }, 100, 'scrRoll', '🥣');
+  controllers.scrPour2 = makePour({ tilt: 'pour2Tilt', card: 'pour2Card', cover: 'pour2Cover', stream: 'pour2Stream', knob: 'pour2Knob', zone: 'pour2Zone', val: 'pour2Val', fillVal: 'pour2FillVal', fillBar: 'pour2FillBar', pill: 'pour2Pill' }, 60, 'scrRoll2', '🥣');
+
+  // ================= 말기 (3단계 & 4단계 후반) =================
+  function makeRoll(ids, cells, nextId) {
+    var card = $(ids.card), track = $(ids.track), sheet = $(ids.sheet), ball = $(ids.ball), hint = $(ids.hint), pill = $(ids.pill);
+    var cell = 0, doneFlag = false, drag = null;
+    var W = 288, BALL = 44;
+    function layout(progress) {
+      // progress: 현재 셀 내 진행도 0~1. 볼 위치/회전 + 시트 길이 실시간 반영
+      var span = (W - BALL) / cells;
+      var x = (cell + clamp(progress, 0, 1)) * span;
+      ball.style.transform = 'translateX(' + x + 'px) rotate(' + ((cell + progress) * 130) + 'deg)';
+      var sheetLeft = x + BALL - 6;
+      sheet.style.left = sheetLeft + 'px';
+      sheet.style.width = Math.max(0, W - sheetLeft) + 'px';
+    }
+    card.addEventListener('pointerdown', function (e) {
+      if (doneFlag) return;
+      try { card.setPointerCapture(e.pointerId); } catch (x) {}
+      drag = { y0: e.clientY, x0: e.clientX, t0: performance.now(), p: 0 };
+      e.preventDefault();
+    });
+    card.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      drag.p = clamp((drag.y0 - e.clientY) / 190, 0, 1);
+      drag.dx = e.clientX - drag.x0; drag.dy = e.clientY - drag.y0;
+      layout(drag.p);
+    });
+    function release(e) {
+      if (!drag) return;
+      var dur = performance.now() - drag.t0;
+      var dy = drag.dy || 0, dx = drag.dx || 0;
+      var len = Math.hypot(dx, dy);
+      var speed = len / Math.max(dur, 1) * 1000;
+      var devDeg = Math.atan2(Math.abs(dx), Math.max(-dy, 1)) * 180 / Math.PI;
+      var ok = drag.p >= 0.55 && speed <= 700 && devDeg <= 32 && dy < 0;
+      var p = drag.p;
+      drag = null;
+      if (doneFlag) return;
+      if (ok) {
+        // 스냅 완료
+        sfx('rollSnap'); vib(20);
+        var from = p;
+        animateP(from, 1, 220, function () {
+          cell++;
+          layout(0);
+          card.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.04) rotate(1deg)' }, { transform: 'scale(1)' }], { duration: 240 });
+          floatUp(card.getBoundingClientRect(), '🌀');
+          hint.textContent = cell < cells ? ('돌돌… ' + cell + ' / ' + cells + ' 바퀴!') : '완벽하게 말았어요!';
+          if (cell >= cells) {
+            doneFlag = true;
+            setTimeout(function () { stepClear('🌀', nextId); }, 380);
+          }
+        });
+      } else {
+        // 되감김
+        sfx('fail'); vib([30, 40, 30]);
+        var msg = speed > 700 ? '너무 빨라요! 천천히~ 🐢' : devDeg > 32 ? '수직으로 곧게! ↕' : '조금 더 길게 쓸어올려요~';
+        pill.textContent = msg;
+        pill.classList.add('pop');
+        setTimeout(function () { pill.classList.remove('pop'); pill.textContent = '화면을 위로 스으윽~ 🌀'; }, 1200);
+        animateP(p, 0, 300, null, 'wobble');
+        card.animate([
+          { transform: 'translateX(0)' }, { transform: 'translateX(-7px)' },
+          { transform: 'translateX(6px)' }, { transform: 'translateX(0)' }
+        ], { duration: 280 });
+      }
+    }
+    card.addEventListener('pointerup', release);
+    card.addEventListener('pointercancel', release);
+    var animTimer = null;
+    function animateP(from, to, ms, doneCb, mode) {
+      // rAF 대신 interval: 창이 가려져도 진행 (rAF는 occluded 창에서 정지)
+      if (animTimer) clearInterval(animTimer);
+      var t0 = performance.now();
+      animTimer = setInterval(function () {
+        var k = clamp((performance.now() - t0) / ms, 0, 1);
+        var e = mode === 'wobble' ? (1 - Math.pow(1 - k, 2)) : (1 - Math.pow(1 - k, 3));
+        layout(from + (to - from) * e);
+        if (k >= 1) { clearInterval(animTimer); animTimer = null; if (doneCb) doneCb(); }
+      }, 16);
+    }
+    layout(0);
+    return {
+      enter: function () { layout(0); },
+      reset: function () { cell = 0; doneFlag = false; layout(0); }
+    };
+  }
+  controllers.scrRoll = makeRoll({ card: 'rollCard', track: 'rollTrack', sheet: 'rollSheet', ball: 'rollBall', hint: 'rollHint', pill: 'rollPill' }, 3, 'scrPour2');
+  controllers.scrRoll2 = makeRoll({ card: 'roll2Card', track: 'roll2Track', sheet: 'roll2Sheet', ball: 'roll2Ball', hint: 'roll2Hint', pill: 'roll2Pill' }, 2, 'scrDone');
+
+  // ================= 완성 =================
+  function doneCelebrate() {
+    sfx('confetti');
+    var r = app.getBoundingClientRect();
+    [0, 250, 550].forEach(function (delay, i) {
+      setTimeout(function () {
+        burst(r.width * (0.3 + i * 0.2), r.height * 0.3, ['🎉', '✨', '🥚', '⭐', '🍳'], 12, 110);
+      }, delay);
+    });
+    vib([40, 60, 40, 60, 80]);
+  }
+  $('retryBtn').addEventListener('click', function () { location.reload(); });
+  $('nextBtn').addEventListener('click', function () { location.reload(); });
+  document.querySelectorAll('.xquit').forEach(function (b) { b.addEventListener('click', function () { location.reload(); }); });
+
+  // ================= 시작 =================
+  $('startBtn').addEventListener('click', function () {
+    Engine.start(function (ok) {
+      // 센서가 없어도(데스크톱/권한 거부) 터치 대체 조작으로 진행
+      goto('scrStir');
+    });
+  });
+
+  // ================= 시뮬레이션 (?sim) =================
+  var __sim = { _t: 0 };
+  __sim.feed = function (gen, dur) {
+    var G = 9.81, sgn = invert ? -1 : 1;
+    var t0 = Math.max(performance.now() / 1000, __sim._t);
+    var n = function () { return (Math.random() - 0.5) * 0.4; };
+    for (var el = 0; el <= dur; el += 1 / 60) {
+      var s = gen(el);
+      Engine.process(t0 + el, sgn * (s.a.x + n()), sgn * (s.a.y + n()), sgn * (s.a.z + n()),
+                     sgn * s.g.x + n(), sgn * s.g.y + n(), sgn * s.g.z + n());
+    }
+    __sim._t = t0 + dur + 0.01;
+  };
+  __sim.stir = function () {
+    // 폰을 세워 든 상태(중력 +y)에서 수평면(x/z) 원 운동
+    __sim.feed(function (el) {
+      var a = el < 0.5 ? { x: 0, y: 0, z: 0 } : { x: 6 * Math.cos(2 * Math.PI * 2 * el), y: 0, z: 6 * Math.sin(2 * Math.PI * 2 * el) };
+      return { a: a, g: { x: a.x, y: a.y + 9.81, z: a.z } };
+    }, 5);
+  };
+  __sim.pour = function (deg, dur) {
+    deg = deg || 40; dur = dur || 5;
+    __sim.feed(function (el) {
+      var d = el < 0.8 ? el / 0.8 * deg : deg;
+      var r = d * Math.PI / 180;
+      return { a: { x: 0, y: 0, z: 0 }, g: { x: 9.81 * Math.sin(r), y: 9.81 * Math.cos(r), z: 0 } };
+    }, dur);
+  };
+  window.__sim = __sim;
+  if (location.search.indexOf('sim') >= 0) {
+    var bar = $('simBar'); bar.style.display = 'flex';
+    [['젓기 5초', function () { __sim.stir(); }], ['붓기 40° 5초', function () { __sim.pour(40, 5); }], ['기준자세 2초', function () { __sim.pour(0, 2); }]].forEach(function (it) {
+      var b = document.createElement('button');
+      b.textContent = it[0];
+      b.addEventListener('click', it[1]);
+      bar.appendChild(b);
+    });
+  }
+})();
+</script>
+</body>
+</html>
