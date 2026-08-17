@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>모션 감지 테스트</title>
+<title>쿠킹클래스 — 동작 테스트</title>
 <style>
   :root {
     --bg: #0e1116; --card: #1a1f27; --card2: #232a35; --line: #303845;
@@ -11,463 +11,803 @@
     --orange: #ff9f43; --red: #ff5c5c; --purple: #b07cff;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  body { background: var(--bg); color: var(--txt); font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; padding: 14px; max-width: 520px; margin: 0 auto; }
+  html, body { overscroll-behavior: none; }
+  body { background: var(--bg); color: var(--txt); font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; max-width: 520px; margin: 0 auto; padding: 14px; }
   h1 { font-size: 17px; margin-bottom: 8px; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
   .chip { font-size: 11px; padding: 3px 8px; border-radius: 10px; background: var(--card2); color: var(--dim); }
   .chip.ok { color: var(--green); } .chip.bad { color: var(--red); }
-  #startBtn { width: 100%; padding: 15px; font-size: 17px; font-weight: 700; color: #fff; background: var(--blue); border: 0; border-radius: 12px; margin-bottom: 12px; }
-  #startBtn:disabled { background: var(--card2); color: var(--dim); }
-  #stateBanner { text-align: center; font-size: 19px; font-weight: 700; padding: 13px; border-radius: 12px; background: var(--card); margin-bottom: 12px; min-height: 50px; transition: background .15s; }
-  #stateBanner.flash { background: var(--purple); }
-  #stateBanner.shaking { background: #1d3050; }
+  button { font-family: inherit; color: var(--txt); background: var(--card2); border: 1px solid var(--line); border-radius: 10px; }
+  #sensorBtn { width: 100%; padding: 13px; font-size: 15px; font-weight: 700; color: #fff; background: var(--blue); border: 0; border-radius: 12px; margin-bottom: 12px; }
+  #sensorBtn:disabled { background: var(--card2); color: var(--dim); }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-  .tile { background: var(--card); border: 2px solid var(--line); border-radius: 12px; padding: 10px; transition: border-color .12s, background .12s; }
-  .tile.hit { border-color: var(--green); background: #14301f; }
-  .tile.live { border-color: var(--blue); background: #14243a; }
+  .tile { background: var(--card); border: 2px solid var(--line); border-radius: 12px; padding: 10px; position: relative; cursor: pointer; }
   .tile .em { font-size: 22px; }
   .tile .nm { font-size: 14px; font-weight: 700; margin: 2px 0; }
-  .tile .ct { font-size: 20px; font-weight: 800; color: var(--green); }
-  .tile .gd { font-size: 10.5px; color: var(--dim); line-height: 1.35; margin-top: 3px; }
-  .meters { background: var(--card); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; font-size: 11px; color: var(--dim); }
-  .mrow { display: flex; align-items: center; gap: 8px; margin: 7px 0; }
-  .mrow label { width: 52px; flex: none; }
-  .bar { flex: 1; height: 14px; background: var(--card2); border-radius: 7px; position: relative; overflow: hidden; }
-  .bar .fill { position: absolute; top: 0; bottom: 0; border-radius: 7px; }
-  #vBar .fill { background: var(--orange); }
-  #hBar .fill { background: var(--blue); left: 0; }
-  #cBar .fill { background: var(--purple); left: 0; }
-  .bar .mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--dim); }
-  .mrow .val { width: 44px; flex: none; text-align: right; font-variant-numeric: tabular-nums; }
-  details { background: var(--card); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; font-size: 12px; }
-  summary { cursor: pointer; color: var(--dim); font-weight: 600; }
-  .srow { display: flex; align-items: center; gap: 8px; margin: 10px 0 2px; }
-  .srow label { width: 105px; flex: none; color: var(--dim); }
-  .srow input[type=range] { flex: 1; }
-  .srow .sv { width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
+  .tile .tag { font-size: 10px; color: var(--dim); }
+  .tile .tag.m { color: var(--blue); } .tile .tag.t { color: var(--orange); } .tile .tag.g { color: var(--purple); }
+  .tile .badge { position: absolute; top: 8px; right: 10px; font-size: 13px; font-weight: 800; color: var(--green); }
   .btnrow { display: flex; gap: 8px; margin-bottom: 12px; }
-  .btnrow button { flex: 1; padding: 10px; font-size: 13px; font-weight: 600; color: var(--txt); background: var(--card2); border: 1px solid var(--line); border-radius: 10px; }
+  .btnrow button { flex: 1; padding: 10px; font-size: 13px; font-weight: 600; }
   .btnrow button.rec { color: var(--red); border-color: var(--red); }
-  #log { background: var(--card); border-radius: 12px; padding: 10px 12px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 10.5px; line-height: 1.5; color: var(--dim); white-space: pre-wrap; word-break: break-all; max-height: 200px; overflow-y: auto; margin-bottom: 12px; }
-  #simPanel { display: none; background: var(--card); border: 1px dashed var(--purple); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; }
-  #simPanel .btnrow { margin: 8px 0 0; }
+  #log { background: var(--card); border-radius: 12px; padding: 10px 12px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 10.5px; line-height: 1.5; color: var(--dim); white-space: pre-wrap; word-break: break-all; max-height: 180px; overflow-y: auto; margin-bottom: 12px; }
   #copyFallback { display: none; width: 100%; height: 80px; background: var(--card2); color: var(--txt); border: 1px solid var(--line); border-radius: 8px; font-size: 10px; margin-bottom: 12px; }
+
+  /* 액션 화면 */
+  #screen { display: none; }
+  .abar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .abar button { padding: 8px 14px; font-size: 14px; }
+  .abar .ttl { font-size: 17px; font-weight: 800; flex: 1; }
+  .inst { font-size: 12.5px; color: var(--dim); background: var(--card); border-radius: 10px; padding: 9px 12px; margin-bottom: 10px; line-height: 1.5; }
+  .needSensor { font-size: 12px; color: var(--orange); background: #2a2010; border-radius: 10px; padding: 9px 12px; margin-bottom: 10px; }
+  .bigcount { text-align: center; font-size: 44px; font-weight: 800; color: var(--green); margin: 4px 0; }
+  .stateTxt { text-align: center; font-size: 15px; font-weight: 700; min-height: 24px; margin-bottom: 8px; color: var(--dim); }
+  .stateTxt.on { color: var(--blue); }
+  .area { touch-action: none; user-select: none; -webkit-user-select: none; background: var(--card); border: 2px dashed var(--line); border-radius: 14px; min-height: 260px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; font-size: 15px; color: var(--dim); margin-bottom: 10px; position: relative; overflow: hidden; }
+  .area.hit { border-color: var(--green); }
+  .area .cEmoji { font-size: 52px; pointer-events: none; }
+  .gaugeWrap { background: var(--card); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; font-size: 11px; color: var(--dim); }
+  .mrow { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+  .mrow label { width: 58px; flex: none; }
+  .bar { flex: 1; height: 13px; background: var(--card2); border-radius: 7px; position: relative; overflow: hidden; }
+  .bar .fill { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 7px; background: var(--blue); width: 0; }
+  .mrow .val { width: 46px; flex: none; text-align: right; font-variant-numeric: tabular-nums; }
+  .srow { display: flex; align-items: center; gap: 8px; margin: 8px 0 2px; font-size: 11px; color: var(--dim); }
+  .srow label { width: 58px; flex: none; }
+  .srow input[type=range] { flex: 1; }
+  .knob { width: 170px; height: 170px; border-radius: 50%; background: conic-gradient(var(--orange) 0deg, var(--card2) 0deg); border: 3px solid var(--line); position: relative; touch-action: none; }
+  .knob .pin { position: absolute; left: 50%; top: 8px; width: 6px; height: 26px; background: #fff; border-radius: 3px; transform-origin: 50% 77px; transform: translateX(-50%); }
+  .ring { width: 150px; height: 150px; border-radius: 50%; background: conic-gradient(var(--green) 0deg, var(--card2) 0deg); display: flex; align-items: center; justify-content: center; }
+  .ring .inner { width: 118px; height: 118px; border-radius: 50%; background: var(--card); display: flex; align-items: center; justify-content: center; font-size: 40px; }
+  canvas.paint { border-radius: 12px; display: block; }
+  #simBar { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #000c; padding: 6px; gap: 5px; flex-wrap: wrap; justify-content: center; z-index: 9; }
+  #simBar button { padding: 5px 9px; font-size: 11px; }
 </style>
 </head>
 <body>
-  <h1>🍳 모션 감지 테스트</h1>
-  <div class="chips">
-    <span class="chip" id="chipSecure">https</span>
-    <span class="chip" id="chipPlat">plat</span>
-    <span class="chip" id="chipPerm">권한: 대기</span>
-    <span class="chip" id="chipHz">0 Hz</span>
-  </div>
-
-  <button id="startBtn">▶ 센서 시작 (iOS는 권한 팝업 확인)</button>
-  <div id="stateBanner">대기 중</div>
-
-  <div class="grid">
-    <div class="tile" id="t_stir"><span class="em">🍳</span><div class="nm">볶기</div><div class="ct">0</div><div class="gd">폰을 팬처럼 눕혀 잡고 수평으로 원을 그리며 흔들기</div></div>
-    <div class="tile" id="t_flip"><span class="em">🥞</span><div class="nm">뒤집기</div><div class="ct">0</div><div class="gd">위로 한 번 휙! (팬케이크 던지듯)</div></div>
-    <div class="tile" id="t_strain"><span class="em">🍜</span><div class="nm">체 거르기</div><div class="ct">0</div><div class="gd">좌우로 촥촥촥 흔들기 (직선 왕복)</div></div>
-    <div class="tile" id="t_chop"><span class="em">🔪</span><div class="nm">칼질</div><div class="ct">0</div><div class="gd">아래로 짧게 툭툭 (도마질하듯)</div></div>
-  </div>
-
-  <div class="meters">
-    <div class="mrow"><label>수직 가속</label><div class="bar" id="vBar"><div class="mid"></div><div class="fill"></div></div><span class="val" id="vVal">0.0</span></div>
-    <div class="mrow"><label>수평 세기</label><div class="bar" id="hBar"><div class="fill"></div></div><span class="val" id="hVal">0.0</span></div>
-    <div class="mrow"><label>원형성</label><div class="bar" id="cBar"><div class="fill"></div></div><span class="val" id="cVal">-</span></div>
-  </div>
-
-  <details>
-    <summary>⚙️ 임계값 튜닝</summary>
-    <div class="srow"><label>임펄스 임계값</label><input type="range" id="sImp" min="4" max="20" step="0.5" value="9"><span class="sv" id="svImp">9</span></div>
-    <div class="srow"><label>흔들기 임계값</label><input type="range" id="sShake" min="2" max="10" step="0.5" value="4"><span class="sv" id="svShake">4</span></div>
-    <div class="srow"><label>원형성 경계</label><input type="range" id="sCirc" min="0.2" max="0.8" step="0.05" value="0.45"><span class="sv" id="svCirc">0.45</span></div>
-    <div class="srow"><label>축 반전</label><input type="checkbox" id="sInvert"><span class="sv" id="svInvert"></span></div>
-  </details>
-
-  <div class="btnrow">
-    <button id="recBtn">⏺ 기록 시작</button>
-    <button id="copyBtn">📋 데이터 복사</button>
-  </div>
-  <textarea id="copyFallback" readonly></textarea>
-
-  <div id="simPanel">
-    <b style="font-size:12px">🧪 시뮬레이션 (합성 신호 주입)</b>
-    <div class="btnrow">
-      <button data-sim="stir">볶기</button>
-      <button data-sim="flip">뒤집기</button>
-      <button data-sim="strain">체거르기</button>
-      <button data-sim="chop">칼질×3</button>
+  <div id="home">
+    <h1>👨‍🍳 쿠킹클래스 — 동작 테스트</h1>
+    <div class="chips">
+      <span class="chip" id="chipSecure">https</span>
+      <span class="chip" id="chipPlat">plat</span>
+      <span class="chip" id="chipPerm">권한: 대기</span>
+      <span class="chip" id="chipHz">0 Hz</span>
     </div>
+    <button id="sensorBtn">▶ 센서 켜기 (모션·기울기 동작에 필요)</button>
+    <div class="grid" id="tileGrid"></div>
+    <div class="btnrow">
+      <button id="recBtn">⏺ 기록 시작</button>
+      <button id="copyBtn">📋 데이터 복사</button>
+    </div>
+    <textarea id="copyFallback" readonly></textarea>
+    <div id="log"></div>
   </div>
 
-  <div id="log"></div>
+  <div id="screen">
+    <div class="abar">
+      <button id="backBtn">←</button>
+      <div class="ttl" id="aTitle"></div>
+      <button id="resetBtn">초기화</button>
+    </div>
+    <div class="needSensor" id="needSensor" style="display:none">⚠️ 이 동작은 센서가 필요해요 — 홈에서 "센서 켜기"를 먼저 눌러주세요</div>
+    <div class="inst" id="aInst"></div>
+    <div id="aBody"></div>
+  </div>
+
+  <div id="simBar"></div>
 
 <script>
 (function () {
   'use strict';
 
-  // ---------- 플랫폼/상태 ----------
+  // ================= 공통 =================
   var isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) ||
               (navigator.userAgent.indexOf('Mac') >= 0 && 'ontouchend' in document);
-  var cfg = { imp: 9, shake: 4, circ: 0.45, invert: isIOS };
-
+  var cfg = { invert: isIOS };
   var $ = function (id) { return document.getElementById(id); };
-  var logEl = $('log');
-  var lines = [];
+  var logEl = $('log'), lines = [];
   function log(msg) {
-    var t = (performance.now() / 1000).toFixed(1);
-    lines.unshift('[' + t + 's] ' + msg);
+    lines.unshift('[' + (performance.now() / 1000).toFixed(1) + 's] ' + msg);
     if (lines.length > 60) lines.pop();
     logEl.textContent = lines.join('\n');
   }
+  function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
+  function vib(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
 
   $('chipSecure').textContent = window.isSecureContext ? 'secure ✓' : 'insecure!';
   $('chipSecure').className = 'chip ' + (window.isSecureContext ? 'ok' : 'bad');
   $('chipPlat').textContent = isIOS ? 'iOS' : 'Android/기타';
-  $('sInvert').checked = cfg.invert;
-  $('svInvert').textContent = cfg.invert ? 'iOS자동' : '';
 
-  // ---------- 벡터 유틸 ----------
-  function dot(a, b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
-  function norm(a) {
-    var m = Math.sqrt(dot(a, a)) || 1;
-    return { x: a.x / m, y: a.y / m, z: a.z / m };
-  }
-  function cross(a, b) {
-    return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x };
-  }
+  // ================= 모션 엔진 =================
+  // 매 샘플: 중력 기준 수직가속 v, 수평가속 hm, 수평 방향각 변화 dAng,
+  // 원형성 ratio(0=왕복,1=회전), 기울기 tiltDeg, 회전속도 rr을 계산해 활성 화면에 전달
+  var Engine = (function () {
+    var gLP = null, warmupUntil = 0, prevAng = null;
+    var hWin = [], hmWin = [], amWin = [];
+    var evCount = 0, evWindowStart = 0, hz = 0;
+    var sensorOn = false;
 
-  // ---------- 감지 파이프라인 ----------
-  var gLP = null;                  // 저역 통과된 중력(includingGravity)
-  var warmupUntil = 0;             // 중력 추정이 안정될 때까지 감지 보류
-  var hWin = [];                   // {t, hm, ang} 최근 0.7s
-  var hmWin = [];                  // {t, hm} 최근 0.4s (임펄스용 평균)
-  var refractoryUntil = 0;
-  var shake = { active: false, candSince: null, lowSince: null, startT: 0, stirFrames: 0, strainFrames: 0, liveLabel: null };
-  var counts = { stir: 0, flip: 0, strain: 0, chop: 0 };
-  var evCount = 0, evWindowStart = 0, hz = 0;
-  var lastUiT = 0;
-  var recording = false, recBuf = [], recEvents = [];
-  var latest = { v: 0, hm: 0, ratio: null };
+    function dot(a, b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+    function norm(a) { var m = Math.sqrt(dot(a, a)) || 1; return { x: a.x / m, y: a.y / m, z: a.z / m }; }
+    function cross(a, b) { return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x }; }
 
-  function processSample(t, ax, ay, az, gx, gy, gz, rr) {
-    var s = cfg.invert ? -1 : 1;
-    ax *= s; ay *= s; az *= s; gx *= s; gy *= s; gz *= s;
+    function process(t, ax, ay, az, gx, gy, gz, rr) {
+      var s = cfg.invert ? -1 : 1;
+      ax *= s; ay *= s; az *= s; gx *= s; gy *= s; gz *= s;
+      if (!gLP) { gLP = { x: gx, y: gy, z: gz }; warmupUntil = t + 0.35; prevAng = null; }
+      var LP = 0.88;
+      gLP.x = LP * gLP.x + (1 - LP) * gx;
+      gLP.y = LP * gLP.y + (1 - LP) * gy;
+      gLP.z = LP * gLP.z + (1 - LP) * gz;
+      var up = norm(gLP);
 
-    if (!gLP) { gLP = { x: gx, y: gy, z: gz }; warmupUntil = t + 0.35; }
-    var LP = 0.88;
-    gLP.x = LP * gLP.x + (1 - LP) * gx;
-    gLP.y = LP * gLP.y + (1 - LP) * gy;
-    gLP.z = LP * gLP.z + (1 - LP) * gz;
-    var up = norm(gLP);
+      var a = { x: ax, y: ay, z: az };
+      var am = Math.sqrt(dot(a, a));
+      var v = dot(a, up);
+      var h = { x: ax - v * up.x, y: ay - v * up.y, z: az - v * up.z };
+      var hm = Math.sqrt(dot(h, h));
 
-    var a = { x: ax, y: ay, z: az };
-    var v = dot(a, up);
-    var h = { x: ax - v * up.x, y: ay - v * up.y, z: az - v * up.z };
-    var hm = Math.sqrt(dot(h, h));
+      var e1 = { x: 1 - up.x * up.x, y: -up.x * up.y, z: -up.x * up.z };
+      var e1m = Math.sqrt(dot(e1, e1));
+      if (e1m < 0.1) { e1 = { x: -up.y * up.x, y: 1 - up.y * up.y, z: -up.y * up.z }; e1m = Math.sqrt(dot(e1, e1)); }
+      e1 = { x: e1.x / e1m, y: e1.y / e1m, z: e1.z / e1m };
+      var e2 = cross(up, e1);
+      var ang = Math.atan2(dot(h, e2), dot(h, e1));
 
-    // 수평면 기저 (중력 기준, 천천히 변하므로 매 샘플 재계산해도 안정적)
-    var e1 = { x: 1 - up.x * up.x, y: -up.x * up.y, z: -up.x * up.z };
-    var e1m = Math.sqrt(dot(e1, e1));
-    if (e1m < 0.1) { e1 = { x: -up.y * up.x, y: 1 - up.y * up.y, z: -up.y * up.z }; e1m = Math.sqrt(dot(e1, e1)); }
-    e1 = { x: e1.x / e1m, y: e1.y / e1m, z: e1.z / e1m };
-    var e2 = cross(up, e1);
-    var ang = Math.atan2(dot(h, e2), dot(h, e1));
-
-    hWin.push({ t: t, hm: hm, ang: ang });
-    while (hWin.length && hWin[0].t < t - 0.7) hWin.shift();
-    hmWin.push({ t: t, hm: hm });
-    while (hmWin.length && hmWin[0].t < t - 0.4) hmWin.shift();
-    var meanHm = 0;
-    for (var i = 0; i < hmWin.length; i++) meanHm += hmWin[i].hm;
-    meanHm /= (hmWin.length || 1);
-
-    // --- 원형성: 수평 가속 벡터 방향각 변화의 일관성 ---
-    var minH = Math.max(1.5, cfg.shake * 0.5);
-    var sumD = 0, sumAbs = 0, prev = null;
-    for (var j = 0; j < hWin.length; j++) {
-      var p = hWin[j];
-      if (p.hm < minH) { prev = null; continue; }
-      if (prev !== null) {
-        var d = p.ang - prev;
-        while (d > Math.PI) d -= 2 * Math.PI;
-        while (d < -Math.PI) d += 2 * Math.PI;
-        sumD += d; sumAbs += Math.abs(d);
-      }
-      prev = p.ang;
-    }
-    var ratio = sumAbs > 1.0 ? Math.abs(sumD) / sumAbs : null;
-
-    // --- 흔들기 상태 머신 (볶기/체거르기) ---
-    if (!shake.active) {
-      if (t >= warmupUntil && meanHm > cfg.shake) {
-        if (shake.candSince === null) shake.candSince = t;
-        if (t - shake.candSince > 0.3) {
-          shake.active = true; shake.startT = t; shake.lowSince = null;
-          shake.stirFrames = 0; shake.strainFrames = 0; shake.liveLabel = null;
-          log('흔들기 시작 (평균 수평 ' + meanHm.toFixed(1) + ')');
+      var dAng = null;
+      if (hm > 1.5) {
+        if (prevAng !== null) {
+          dAng = ang - prevAng;
+          while (dAng > Math.PI) dAng -= 2 * Math.PI;
+          while (dAng < -Math.PI) dAng += 2 * Math.PI;
         }
-      } else {
-        shake.candSince = null;
+        prevAng = ang;
+      } else prevAng = null;
+
+      hWin.push({ t: t, hm: hm, d: dAng });
+      while (hWin.length && hWin[0].t < t - 0.7) hWin.shift();
+      hmWin.push({ t: t, hm: hm });
+      while (hmWin.length && hmWin[0].t < t - 0.4) hmWin.shift();
+      amWin.push({ t: t, am: am });
+      while (amWin.length && amWin[0].t < t - 0.35) amWin.shift();
+      var meanHm = 0, i;
+      for (i = 0; i < hmWin.length; i++) meanHm += hmWin[i].hm;
+      meanHm /= (hmWin.length || 1);
+      var meanAm = 0;
+      for (i = 0; i < amWin.length; i++) meanAm += amWin[i].am;
+      meanAm /= (amWin.length || 1);
+
+      var sumD = 0, sumAbs = 0;
+      for (i = 0; i < hWin.length; i++) {
+        var d = hWin[i].d;
+        if (d !== null && hWin[i].hm > 2) { sumD += d; sumAbs += Math.abs(d); }
       }
-    } else {
-      if (ratio !== null) {
-        if (ratio > cfg.circ + 0.08) { shake.stirFrames++; shake.liveLabel = 'stir'; }
-        else if (ratio < cfg.circ - 0.08) { shake.strainFrames++; shake.liveLabel = 'strain'; }
-      }
-      if (meanHm < cfg.shake * 0.55) {
-        if (shake.lowSince === null) shake.lowSince = t;
-        if (t - shake.lowSince > 0.25) {
-          var dur = t - shake.startT;
-          shake.active = false; shake.candSince = null;
-          if (dur >= 0.45 && (shake.stirFrames + shake.strainFrames) > 6) {
-            var kind = shake.stirFrames >= shake.strainFrames ? 'stir' : 'strain';
-            hit(kind, dur.toFixed(1) + 's, 원형성 ' + (ratio === null ? '-' : ratio.toFixed(2)) +
-              ' (볶' + shake.stirFrames + ':거' + shake.strainFrames + ')');
-          } else {
-            log('흔들기 종료 — 너무 짧아 무시 (' + dur.toFixed(1) + 's)');
-          }
-        }
-      } else {
-        shake.lowSince = null;
+      var ratio = sumAbs > 1.0 ? Math.abs(sumD) / sumAbs : null;
+
+      var tiltDeg = Math.acos(clamp(up.y, -1, 1)) * 180 / Math.PI;
+
+      var sample = { t: t, v: v, hm: hm, meanHm: meanHm, am: am, meanAm: meanAm,
+                     ratio: ratio, dAng: dAng, tiltDeg: tiltDeg, rr: rr,
+                     ready: t >= warmupUntil };
+      if (Router.active && Router.active.onMotion) Router.active.onMotion(sample);
+      if (Rec.on && Rec.buf.length < 8000) {
+        Rec.buf.push([+t.toFixed(3), +ax.toFixed(2), +ay.toFixed(2), +az.toFixed(2),
+                      +gx.toFixed(2), +gy.toFixed(2), +gz.toFixed(2),
+                      rr ? +(rr.alpha || 0).toFixed(1) : 0, rr ? +(rr.beta || 0).toFixed(1) : 0, rr ? +(rr.gamma || 0).toFixed(1) : 0]);
       }
     }
 
-    // --- 임펄스 (뒤집기/칼질): 수직 우세 스파이크, 흔들기 중에는 억제 ---
-    if (!shake.active && t >= warmupUntil && t > refractoryUntil &&
-        Math.abs(v) > cfg.imp && Math.abs(v) > 1.2 * hm) {
-      if (v > 0) { refractoryUntil = t + 0.65; hit('flip', '+' + v.toFixed(1) + ' m/s²'); }
-      else { refractoryUntil = t + 0.35; hit('chop', v.toFixed(1) + ' m/s²'); }
-    }
-
-    latest.v = v; latest.hm = meanHm; latest.ratio = ratio;
-
-    if (recording && recBuf.length < 6000) {
-      recBuf.push([+t.toFixed(3), +ax.toFixed(2), +ay.toFixed(2), +az.toFixed(2),
-                   +gx.toFixed(2), +gy.toFixed(2), +gz.toFixed(2),
-                   rr ? +(rr.alpha || 0).toFixed(1) : 0, rr ? +(rr.beta || 0).toFixed(1) : 0, rr ? +(rr.gamma || 0).toFixed(1) : 0]);
-    }
-
-    if (t - lastUiT > 0.05) { lastUiT = t; updateMeters(); }
-    updateLiveTiles();
-  }
-
-  // ---------- 감지 결과 표시 ----------
-  var names = { stir: '볶기 🍳', flip: '뒤집기 🥞', strain: '체거르기 🍜', chop: '칼질 🔪' };
-  function hit(kind, detail) {
-    counts[kind]++;
-    var tile = $('t_' + kind);
-    tile.querySelector('.ct').textContent = counts[kind];
-    tile.classList.add('hit');
-    setTimeout(function () { tile.classList.remove('hit'); }, 350);
-    var b = $('stateBanner');
-    b.textContent = names[kind] + '!';
-    b.classList.add('flash');
-    setTimeout(function () { b.classList.remove('flash'); if (!shake.active) b.textContent = '대기 중'; }, 500);
-    if (navigator.vibrate) navigator.vibrate(30);
-    log('감지: ' + names[kind] + ' — ' + detail);
-    if (recording) recEvents.push({ t: +(performance.now() / 1000).toFixed(3), kind: kind, detail: detail });
-  }
-
-  function updateLiveTiles() {
-    var b = $('stateBanner');
-    $('t_stir').classList.toggle('live', shake.active && shake.liveLabel === 'stir');
-    $('t_strain').classList.toggle('live', shake.active && shake.liveLabel === 'strain');
-    if (shake.active) {
-      b.classList.add('shaking');
-      b.textContent = shake.liveLabel === 'stir' ? '볶는 중… 🍳'
-                    : shake.liveLabel === 'strain' ? '거르는 중… 🍜' : '흔들기 판별 중…';
-    } else {
-      b.classList.remove('shaking');
-      if (!b.classList.contains('flash') && b.textContent.indexOf('중…') > 0) b.textContent = '대기 중';
-    }
-  }
-
-  function updateMeters() {
-    var vf = $('vBar').querySelector('.fill');
-    var vv = Math.max(-20, Math.min(20, latest.v));
-    if (vv >= 0) { vf.style.left = '50%'; vf.style.width = (vv / 20 * 50) + '%'; }
-    else { vf.style.width = (-vv / 20 * 50) + '%'; vf.style.left = (50 + vv / 20 * 50) + '%'; }
-    $('vVal').textContent = latest.v.toFixed(1);
-    $('hBar').querySelector('.fill').style.width = Math.min(100, latest.hm / 15 * 100) + '%';
-    $('hVal').textContent = latest.hm.toFixed(1);
-    $('cBar').querySelector('.fill').style.width = (latest.ratio === null ? 0 : latest.ratio * 100) + '%';
-    $('cVal').textContent = latest.ratio === null ? '-' : latest.ratio.toFixed(2);
-    $('chipHz').textContent = hz + ' Hz';
-  }
-
-  // ---------- 센서 연결 ----------
-  var started = false;
-  function onMotion(e) {
-    var t = performance.now() / 1000;
-    evCount++;
-    if (t - evWindowStart >= 1) { hz = evCount; evCount = 0; evWindowStart = t; }
-
-    var g = e.accelerationIncludingGravity;
-    if (!g || g.x === null) return;
-    var a = e.acceleration;
-    var ax, ay, az;
-    if (a && a.x !== null) { ax = a.x; ay = a.y; az = a.z; }
-    else {
-      // 자이로 없는 기기: includingGravity - 저역통과 중력으로 근사
-      if (!gLP) { ax = 0; ay = 0; az = 0; }
-      else {
-        var s2 = cfg.invert ? -1 : 1; // gLP는 부호 정규화 후 저장되므로 되돌려 비교
+    function onDevMotion(e) {
+      var t = performance.now() / 1000;
+      evCount++;
+      if (t - evWindowStart >= 1) { hz = evCount; evCount = 0; evWindowStart = t; $('chipHz').textContent = hz + ' Hz'; }
+      var g = e.accelerationIncludingGravity;
+      if (!g || g.x === null) return;
+      var a = e.acceleration, ax, ay, az;
+      if (a && a.x !== null) { ax = a.x; ay = a.y; az = a.z; }
+      else if (gLP) {
+        var s2 = cfg.invert ? -1 : 1;
         ax = g.x - gLP.x * s2; ay = g.y - gLP.y * s2; az = g.z - gLP.z * s2;
+      } else { ax = 0; ay = 0; az = 0; }
+      process(t, ax, ay, az, g.x, g.y, g.z, e.rotationRate);
+    }
+
+    function start() {
+      log('secure: ' + window.isSecureContext + ' / ' + navigator.userAgent.slice(0, 70));
+      var DME = window.DeviceMotionEvent;
+      if (!DME) { log('❌ DeviceMotionEvent 미지원'); setPerm('미지원', false); return; }
+      if (typeof DME.requestPermission === 'function') {
+        log('requestPermission() 호출 → 팝업이 떠야 정상 (토스 WebView go/no-go!)');
+        DME.requestPermission().then(function (r) {
+          log('requestPermission 결과: ' + r);
+          setPerm(r, r === 'granted');
+          if (r === 'granted') attach();
+        }).catch(function (err) { log('❌ requestPermission 에러: ' + err); setPerm('에러', false); });
+      } else {
+        log('requestPermission 불필요(비iOS) — 바로 연결');
+        setPerm('불필요', true);
+        attach();
       }
     }
-    processSample(t, ax, ay, az, g.x, g.y, g.z, e.rotationRate);
-  }
-
-  $('startBtn').addEventListener('click', function () {
-    if (started) return;
-    log('secure context: ' + window.isSecureContext + ' / UA: ' + navigator.userAgent.slice(0, 80));
-    var DME = window.DeviceMotionEvent;
-    if (!DME) { log('❌ DeviceMotionEvent 미지원'); $('chipPerm').textContent = '권한: 미지원'; return; }
-    if (typeof DME.requestPermission === 'function') {
-      log('requestPermission() 호출 → 팝업이 떠야 정상 (토스 WebView go/no-go 포인트!)');
-      DME.requestPermission().then(function (r) {
-        log('requestPermission 결과: ' + r);
-        $('chipPerm').textContent = '권한: ' + r;
-        $('chipPerm').className = 'chip ' + (r === 'granted' ? 'ok' : 'bad');
-        if (r === 'granted') attach();
-      }).catch(function (err) {
-        log('❌ requestPermission 에러: ' + err);
-        $('chipPerm').textContent = '권한: 에러';
-        $('chipPerm').className = 'chip bad';
-      });
-    } else {
-      log('requestPermission 불필요 (비iOS) — 바로 연결');
-      $('chipPerm').textContent = '권한: 불필요';
-      $('chipPerm').className = 'chip ok';
-      attach();
+    function setPerm(txt, ok) {
+      $('chipPerm').textContent = '권한: ' + txt;
+      $('chipPerm').className = 'chip ' + (ok ? 'ok' : 'bad');
     }
-  });
+    function attach() {
+      sensorOn = true;
+      evWindowStart = performance.now() / 1000;
+      window.addEventListener('devicemotion', onDevMotion);
+      $('sensorBtn').textContent = '✓ 센서 연결됨';
+      $('sensorBtn').disabled = true;
+      setTimeout(function () {
+        if (hz === 0 && evCount === 0) log('⚠️ 1.5초간 센서 이벤트 없음 — HTTPS/기기 지원 확인');
+      }, 1500);
+      Router.refreshSensorNotice();
+    }
 
-  function attach() {
-    started = true;
-    evWindowStart = performance.now() / 1000;
-    window.addEventListener('devicemotion', onMotion);
-    $('startBtn').textContent = '✓ 센서 연결됨';
-    $('startBtn').disabled = true;
-    setTimeout(function () {
-      if (hz === 0 && evCount === 0) log('⚠️ 1.5초간 센서 이벤트 없음 — HTTPS 여부/기기 지원 확인 필요');
-    }, 1500);
-    log('devicemotion 리스너 등록 완료');
-  }
+    return { start: start, process: process, isOn: function () { return sensorOn; } };
+  })();
 
-  // ---------- 튜닝 슬라이더 ----------
-  function bindSlider(id, key, out) {
-    $(id).addEventListener('input', function () {
-      cfg[key] = parseFloat(this.value);
-      $(out).textContent = this.value;
-    });
-  }
-  bindSlider('sImp', 'imp', 'svImp');
-  bindSlider('sShake', 'shake', 'svShake');
-  bindSlider('sCirc', 'circ', 'svCirc');
-  $('sInvert').addEventListener('change', function () {
-    cfg.invert = this.checked;
-    $('svInvert').textContent = '';
-    gLP = null; // 부호 바뀌면 중력 필터 리셋
-    log('축 반전: ' + cfg.invert);
-  });
-
-  // ---------- 기록/복사 ----------
+  // ================= 기록 =================
+  var Rec = { on: false, buf: [], events: [] };
   $('recBtn').addEventListener('click', function () {
-    recording = !recording;
-    if (recording) { recBuf = []; recEvents = []; this.textContent = '⏹ 기록 정지'; this.classList.add('rec'); log('기록 시작'); }
-    else { this.textContent = '⏺ 기록 시작'; this.classList.remove('rec'); log('기록 정지 — 샘플 ' + recBuf.length + '개'); }
+    Rec.on = !Rec.on;
+    if (Rec.on) { Rec.buf = []; Rec.events = []; this.textContent = '⏹ 기록 정지'; this.classList.add('rec'); log('기록 시작'); }
+    else { this.textContent = '⏺ 기록 시작'; this.classList.remove('rec'); log('기록 정지 — 샘플 ' + Rec.buf.length + '개'); }
   });
   $('copyBtn').addEventListener('click', function () {
     var payload = JSON.stringify({
-      meta: { ua: navigator.userAgent, ios: isIOS, invert: cfg.invert, hz: hz, secure: window.isSecureContext },
-      thresholds: { imp: cfg.imp, shake: cfg.shake, circ: cfg.circ },
-      counts: counts,
+      meta: { ua: navigator.userAgent, ios: isIOS, invert: cfg.invert, secure: window.isSecureContext },
       columns: ['t', 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'rrA', 'rrB', 'rrG'],
-      samples: recBuf, events: recEvents
+      samples: Rec.buf, events: Rec.events
     });
+    function fb(txt) { var f = $('copyFallback'); f.style.display = 'block'; f.value = txt; f.select(); log('클립보드 실패 — 텍스트를 길게 눌러 복사'); }
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(payload).then(
-        function () { log('클립보드 복사 완료 (' + payload.length + '자)'); },
-        function () { showFallback(payload); });
-    } else showFallback(payload);
-    function showFallback(txt) {
-      var f = $('copyFallback');
-      f.style.display = 'block'; f.value = txt; f.select();
-      log('클립보드 API 실패 — 아래 텍스트를 길게 눌러 복사하세요');
-    }
+      navigator.clipboard.writeText(payload).then(function () { log('복사 완료 (' + payload.length + '자)'); }, function () { fb(payload); });
+    } else fb(payload);
   });
 
-  // ---------- 시뮬레이션 (?sim) ----------
-  if (location.search.indexOf('sim') >= 0) {
-    $('simPanel').style.display = 'block';
-    var simTimer = null;
-    var LEAD = 0.5; // 패턴 앞 정지 구간(중력 필터 안정화, 실사용의 '가만히 들고 있기'에 해당)
-    function runSim(genRaw, durRaw) {
-      // 앞: 정지(중력 안정화) / 뒤: 정지 tail(상태 머신이 자연스럽게 닫히도록 — 실폰은 정지 시에도 이벤트가 계속 옴)
-      var gen = function (el) {
-        var el2 = el - LEAD;
-        if (el2 < 0 || el2 > durRaw) return { x: 0, y: 0, z: 0 };
-        return genRaw(el2);
-      };
-      var dur = durRaw + LEAD + 1.2;
-      if (simTimer) clearInterval(simTimer);
-      // 가상 시계 기반: 백그라운드 탭에서 타이머가 스로틀링돼도 60Hz 샘플을 따라잡아 배치 처리
-      var wall0 = performance.now() / 1000;
-      var simEl = 0, STEP = 1 / 60;
-      var G = cfg.invert ? -9.81 : 9.81; // processSample이 부호 정규화하므로 원시 관례로 주입
-      var sgn = cfg.invert ? -1 : 1;
-      var n = function () { return (Math.random() - 0.5) * 0.6; };
-      simTimer = setInterval(function () {
-        var wallEl = performance.now() / 1000 - wall0;
-        var target = Math.min(wallEl, dur);
-        while (simEl < target) {
-          simEl += STEP;
-          var a = gen(simEl);
-          processSample(wall0 + simEl, sgn * (a.x + n()), sgn * (a.y + n()), sgn * (a.z + n()),
-                        sgn * a.x + n(), sgn * a.y + n(), sgn * a.z + G + n(), null);
-        }
-        if (wallEl >= dur) { clearInterval(simTimer); simTimer = null; log('SIM 종료'); }
-      }, 16);
-    }
-    var sims = {
-      chop: function () {
-        runSim(function (el) {
-          var ph = el % 0.42;
-          if (ph < 0.08) return { x: 0, y: 0, z: -13 };
-          if (ph < 0.16) return { x: 0, y: 0, z: 7 };
-          return { x: 0, y: 0, z: 0 };
-        }, 1.15);
-      },
-      flip: function () {
-        runSim(function (el) {
-          if (el < 0.12) return { x: 0, y: 0, z: 14 };
-          if (el < 0.24) return { x: 0, y: 0, z: -8 };
-          return { x: 0, y: 0, z: 0 };
-        }, 0.5);
-      },
-      strain: function () {
-        runSim(function (el) {
-          return { x: 8 * Math.sin(2 * Math.PI * 4.5 * el), y: 0, z: 0 };
-        }, 1.7);
-      },
-      stir: function () {
-        runSim(function (el) {
-          return { x: 6 * Math.cos(2 * Math.PI * 2.2 * el), y: 6 * Math.sin(2 * Math.PI * 2.2 * el), z: 0 };
-        }, 1.7);
-      }
-    };
-    document.querySelectorAll('#simPanel button').forEach(function (btn) {
-      btn.addEventListener('click', function () { log('SIM: ' + btn.dataset.sim); sims[btn.dataset.sim](); });
+  // ================= 공용 위젯 =================
+  function meterRow(label) {
+    var row = document.createElement('div'); row.className = 'mrow';
+    row.innerHTML = '<label>' + label + '</label><div class="bar"><div class="fill"></div></div><span class="val">0</span>';
+    return { el: row, set: function (frac, txt) { row.querySelector('.fill').style.width = clamp(frac, 0, 1) * 100 + '%'; row.querySelector('.val').textContent = txt; } };
+  }
+  function slider(label, min, max, step, val, onChange) {
+    var row = document.createElement('div'); row.className = 'srow';
+    row.innerHTML = '<label>' + label + '</label><input type="range" min="' + min + '" max="' + max + '" step="' + step + '" value="' + val + '"><span class="val">' + val + '</span>';
+    row.querySelector('input').addEventListener('input', function () {
+      row.querySelector('.val').textContent = this.value;
+      onChange(parseFloat(this.value));
     });
-    log('시뮬레이션 모드 활성 (합성 신호로 감지 로직 검증)');
+    return row;
+  }
+  // 임계 초과 → 하락 시 1회로 세는 피크 카운터
+  function peakCounter(minGap) {
+    var lastT = -9, over = false;
+    return function (val, t, thresh) {
+      if (val > thresh) { over = true; return false; }
+      if (over && val < thresh * 0.6) {
+        over = false;
+        if (t - lastT > minGap) { lastT = t; return true; }
+      }
+      return false;
+    };
+  }
+  // 터치 스트로크 추적
+  function strokeTracker(el, onStroke) {
+    var st = null;
+    el.addEventListener('pointerdown', function (e) {
+      try { el.setPointerCapture(e.pointerId); } catch (x) {}
+      st = { x0: e.clientX, y0: e.clientY, t0: performance.now(), pts: [[e.clientX, e.clientY]] };
+      e.preventDefault();
+    });
+    el.addEventListener('pointermove', function (e) { if (st) st.pts.push([e.clientX, e.clientY]); });
+    function end(e) {
+      if (!st) return;
+      var dx = e.clientX - st.x0, dy = e.clientY - st.y0;
+      var len = Math.hypot(dx, dy), dur = performance.now() - st.t0;
+      var dev = 0;
+      if (len > 5) {
+        for (var i = 0; i < st.pts.length; i++) {
+          var px = st.pts[i][0] - st.x0, py = st.pts[i][1] - st.y0;
+          var cr = Math.abs(px * dy - py * dx) / len;
+          if (cr > dev) dev = cr;
+        }
+      }
+      onStroke({ dx: dx, dy: dy, len: len, dur: dur, dev: len > 5 ? dev / len : 1 });
+      st = null;
+    }
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', function () { st = null; });
+  }
+  // 중심 기준 회전 추적 (다이얼/휘젓기)
+  function rotaryTracker(el, onDelta) {
+    var last = null;
+    function angOf(e) {
+      var r = el.getBoundingClientRect();
+      return Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2));
+    }
+    el.addEventListener('pointerdown', function (e) {
+      try { el.setPointerCapture(e.pointerId); } catch (x) {}
+      last = angOf(e); e.preventDefault();
+    });
+    el.addEventListener('pointermove', function (e) {
+      if (last === null) return;
+      var a = angOf(e), d = a - last;
+      while (d > Math.PI) d -= 2 * Math.PI;
+      while (d < -Math.PI) d += 2 * Math.PI;
+      last = a; onDelta(d);
+    });
+    el.addEventListener('pointerup', function () { last = null; });
+    el.addEventListener('pointercancel', function () { last = null; });
+  }
+  // 길게 누르기 추적 (rAF 대신 interval: 백그라운드 탭에서도 진행되도록)
+  function holdTracker(el, targetMs, onProg, onDone) {
+    var t0 = null, timer = null;
+    function tick() {
+      if (t0 === null) return;
+      var p = clamp((performance.now() - t0) / targetMs, 0, 1);
+      onProg(p);
+      if (p >= 1) { stopTimer(); t0 = null; onDone(); }
+    }
+    function stopTimer() { if (timer) { clearInterval(timer); timer = null; } }
+    el.addEventListener('pointerdown', function (e) {
+      try { el.setPointerCapture(e.pointerId); } catch (x) {}
+      t0 = performance.now(); stopTimer(); timer = setInterval(tick, 66); tick(); e.preventDefault();
+    });
+    function stop() { stopTimer(); if (t0 !== null) onProg(0); t0 = null; }
+    el.addEventListener('pointerup', stop);
+    el.addEventListener('pointercancel', stop);
   }
 
-  log('페이지 로드 완료 — 센서 시작을 눌러주세요');
+  // ================= 액션 정의 =================
+  // 각 액션: {id, em, nm, tag('모션'|'터치'|'기울기'), inst, needSensor, build(body, api)}
+  // api: count(n?) 카운트 표시+홈 배지, event(detail) 로그+기록, flash() 영역 강조
+  var ACTIONS = [
+    { id: 'stirfry', em: '🍳', nm: '볶기', tag: '모션', needSensor: true,
+      inst: '팬을 채듯 <b>앞뒤로 촥촥</b> 흔들어요 (직선 왕복). 원을 그리면 휘젓기와 헷갈리니 왕복만!',
+      build: function (body, api) {
+        var st = { thresh: 4, peak: peakCounter(0.12) };
+        var state = document.createElement('div'); state.className = 'stateTxt'; body.appendChild(state);
+        var cnt = document.createElement('div'); cnt.className = 'bigcount'; cnt.textContent = '0'; body.appendChild(cnt);
+        var gw = document.createElement('div'); gw.className = 'gaugeWrap'; body.appendChild(gw);
+        var m1 = meterRow('수평 세기'), m2 = meterRow('원형성');
+        gw.appendChild(m1.el); gw.appendChild(m2.el);
+        gw.appendChild(slider('민감도', 2, 8, 0.5, st.thresh, function (v) { st.thresh = v; }));
+        var n = 0;
+        this.onMotion = function (s) {
+          if (!s.ready) return;
+          var active = s.meanHm > st.thresh && (s.ratio === null || s.ratio < 0.45);
+          state.textContent = active ? '볶는 중! 🔥' : (s.meanHm > st.thresh ? '원을 그리고 있어요 (왕복으로!)' : '대기');
+          state.className = 'stateTxt' + (active ? ' on' : '');
+          if (active && st.peak(s.hm, s.t, st.thresh * 1.3)) { n++; cnt.textContent = n; api.count(n); }
+          m1.set(s.meanHm / 12, s.meanHm.toFixed(1));
+          m2.set(s.ratio === null ? 0 : s.ratio, s.ratio === null ? '-' : s.ratio.toFixed(2));
+        };
+        this.reset = function () { n = 0; cnt.textContent = '0'; api.count(0); };
+      } },
+
+    { id: 'flip', em: '🥞', nm: '뒤집기', tag: '모션', needSensor: true,
+      inst: '팬케이크를 던지듯 <b>위로 한 번 휙!</b> 받는 동작은 세지 않아요.',
+      build: function (body, api) {
+        var st = { thresh: 9, refUntil: 0 };
+        var state = document.createElement('div'); state.className = 'stateTxt'; state.textContent = '대기'; body.appendChild(state);
+        var cnt = document.createElement('div'); cnt.className = 'bigcount'; cnt.textContent = '0'; body.appendChild(cnt);
+        var gw = document.createElement('div'); gw.className = 'gaugeWrap'; body.appendChild(gw);
+        var m1 = meterRow('수직 가속');
+        gw.appendChild(m1.el);
+        gw.appendChild(slider('민감도', 5, 16, 0.5, st.thresh, function (v) { st.thresh = v; }));
+        var n = 0;
+        this.onMotion = function (s) {
+          if (!s.ready) return;
+          if (s.t > st.refUntil && s.v > st.thresh && s.v > 1.2 * s.hm) {
+            st.refUntil = s.t + 0.65;
+            n++; cnt.textContent = n; api.count(n); api.event('+' + s.v.toFixed(1));
+            state.textContent = '뒤집기! 🥞'; state.className = 'stateTxt on'; vib(30);
+            setTimeout(function () { state.textContent = '대기'; state.className = 'stateTxt'; }, 450);
+          }
+          m1.set(Math.abs(s.v) / 20, s.v.toFixed(1));
+        };
+        this.reset = function () { n = 0; cnt.textContent = '0'; api.count(0); };
+      } },
+
+    { id: 'chop', em: '🔪', nm: '칼질하기', tag: '터치', needSensor: false,
+      inst: '도마질하듯 화면을 <b>세로로 곧게 슥슥</b> 그어요. 짧고 빠르게, 비스듬하면 인정 안 돼요.',
+      build: function (body, api) {
+        var area = document.createElement('div'); area.className = 'area';
+        area.innerHTML = '<span class="cEmoji">🥕</span><span>여기를 세로로 슥슥</span>';
+        body.appendChild(area);
+        var cnt = document.createElement('div'); cnt.className = 'bigcount'; cnt.textContent = '0'; body.appendChild(cnt);
+        var state = document.createElement('div'); state.className = 'stateTxt'; body.appendChild(state);
+        var n = 0;
+        strokeTracker(area, function (sk) {
+          if (sk.len < 60) { state.textContent = '너무 짧아요'; return; }
+          if (sk.dur > 500) { state.textContent = '너무 느려요'; return; }
+          if (sk.dev > 0.22) { state.textContent = '구불구불해요 — 곧게!'; return; }
+          if (Math.abs(sk.dx) > Math.abs(sk.dy) * 0.7) { state.textContent = '↔ 비스듬해요 — 세로로!'; return; }
+          n++; cnt.textContent = n; api.count(n); api.event('len ' + sk.len.toFixed(0));
+          state.textContent = '싹둑! 🔪'; state.className = 'stateTxt on'; vib(15);
+          area.classList.add('hit'); setTimeout(function () { area.classList.remove('hit'); state.className = 'stateTxt'; }, 200);
+        });
+        this.reset = function () { n = 0; cnt.textContent = '0'; api.count(0); };
+      } },
+
+    { id: 'heat', em: '🔥', nm: '불조절', tag: '터치', needSensor: false,
+      inst: '가스레인지 다이얼을 돌리듯 <b>노브를 손가락으로 돌려요</b>. 시계방향 = 세게.',
+      build: function (body, api) {
+        var wrap = document.createElement('div'); wrap.className = 'area'; wrap.style.minHeight = '240px';
+        var knob = document.createElement('div'); knob.className = 'knob';
+        knob.innerHTML = '<div class="pin"></div>';
+        wrap.appendChild(knob);
+        var lbl = document.createElement('div'); lbl.style.fontSize = '20px'; lbl.style.fontWeight = '800'; lbl.textContent = '꺼짐';
+        wrap.appendChild(lbl);
+        body.appendChild(wrap);
+        var deg = 0;
+        rotaryTracker(knob, function (d) {
+          deg = clamp(deg + d * 180 / Math.PI, 0, 270);
+          knob.style.background = 'conic-gradient(var(--orange) ' + deg + 'deg, var(--card2) ' + deg + 'deg)';
+          knob.querySelector('.pin').style.transform = 'translateX(-50%) rotate(' + deg + 'deg)';
+          var lv = deg < 15 ? '꺼짐' : deg < 100 ? '약불 🔥' : deg < 200 ? '중불 🔥🔥' : '강불 🔥🔥🔥';
+          if (lbl.textContent !== lv) { lbl.textContent = lv; api.event(lv + ' (' + deg.toFixed(0) + '°)'); vib(10); }
+          api.count(Math.round(deg / 270 * 100));
+        });
+        this.reset = function () {
+          deg = 0; lbl.textContent = '꺼짐'; api.count(0);
+          knob.style.background = ''; knob.querySelector('.pin').style.transform = 'translateX(-50%)';
+        };
+      } },
+
+    { id: 'pour', em: '🫗', nm: '붓기', tag: '기울기', needSensor: true,
+      inst: '폰을 컵이라 생각하고 <b>기울여서 부어요</b>. 45°부터 흐르고, 많이 기울일수록 콸콸!',
+      build: function (body, api) {
+        var state = document.createElement('div'); state.className = 'stateTxt'; body.appendChild(state);
+        var cup = document.createElement('div'); cup.className = 'bigcount'; cup.textContent = '0%'; body.appendChild(cup);
+        var gw = document.createElement('div'); gw.className = 'gaugeWrap'; body.appendChild(gw);
+        var m1 = meterRow('기울기'), m2 = meterRow('채움');
+        gw.appendChild(m1.el); gw.appendChild(m2.el);
+        var fill = 0, lastT = null, done = false;
+        this.onMotion = function (s) {
+          var pouring = s.tiltDeg > 45;
+          if (lastT !== null && pouring && !done) {
+            var rate = (s.tiltDeg - 45) / 60;
+            fill = clamp(fill + rate * (s.t - lastT) * 40, 0, 100);
+            if (fill >= 100) { done = true; api.event('가득!'); vib(40); }
+          }
+          lastT = s.t;
+          state.textContent = done ? '가득 찼어요! 🫗✓' : pouring ? '붓는 중… (' + s.tiltDeg.toFixed(0) + '°)' : '기울여 주세요 (' + s.tiltDeg.toFixed(0) + '°)';
+          state.className = 'stateTxt' + (pouring && !done ? ' on' : '');
+          cup.textContent = fill.toFixed(0) + '%';
+          api.count(Math.round(fill));
+          m1.set(s.tiltDeg / 120, s.tiltDeg.toFixed(0) + '°');
+          m2.set(fill / 100, fill.toFixed(0) + '%');
+        };
+        this.reset = function () { fill = 0; done = false; api.count(0); cup.textContent = '0%'; };
+      } },
+
+    { id: 'whisk', em: '🥚', nm: '휘젓기', tag: '모션', needSensor: false,
+      inst: '<b>모션</b>: 폰을 수평으로 빙글빙글 원을 그리며 돌려요.<br><b>터치</b>: 아래 볼을 손가락으로 빙글빙글 저어요.',
+      build: function (body, api) {
+        var st = { thresh: 4 };
+        var state = document.createElement('div'); state.className = 'stateTxt'; body.appendChild(state);
+        var cnt = document.createElement('div'); cnt.className = 'bigcount'; cnt.textContent = '0바퀴'; body.appendChild(cnt);
+        var gw = document.createElement('div'); gw.className = 'gaugeWrap'; body.appendChild(gw);
+        var m2 = meterRow('원형성');
+        gw.appendChild(m2.el);
+        gw.appendChild(slider('민감도', 2, 8, 0.5, st.thresh, function (v) { st.thresh = v; }));
+        var bowl = document.createElement('div'); bowl.className = 'area'; bowl.style.minHeight = '220px';
+        bowl.innerHTML = '<span class="cEmoji">🥣</span><span>손가락으로 빙글빙글</span>';
+        body.appendChild(bowl);
+        var revM = 0, revT = 0;
+        function show() { cnt.textContent = (Math.abs(revM) + Math.abs(revT)).toFixed(1) + '바퀴'; api.count(+(Math.abs(revM) + Math.abs(revT)).toFixed(1)); }
+        this.onMotion = function (s) {
+          if (!s.ready) return;
+          var active = s.meanHm > st.thresh && s.ratio !== null && s.ratio > 0.5;
+          if (active && s.dAng !== null) { revM += s.dAng / (2 * Math.PI); show(); }
+          state.textContent = active ? '휘젓는 중! (모션) 🌀' : s.meanHm > st.thresh ? '왕복이에요 — 원을 그려요!' : '대기';
+          state.className = 'stateTxt' + (active ? ' on' : '');
+          m2.set(s.ratio === null ? 0 : s.ratio, s.ratio === null ? '-' : s.ratio.toFixed(2));
+        };
+        rotaryTracker(bowl, function (d) {
+          revT += d / (2 * Math.PI); show();
+          state.textContent = '휘젓는 중! (터치) 🌀'; state.className = 'stateTxt on';
+        });
+        this.reset = function () { revM = 0; revT = 0; cnt.textContent = '0바퀴'; api.count(0); };
+      } },
+
+    { id: 'spread', em: '🧈', nm: '바르기', tag: '터치', needSensor: false,
+      inst: '식빵 전체에 버터를 <b>고르게 발라요</b> — 빈 곳 없이 문질러 95% 채우면 성공!',
+      build: function (body, api) {
+        var wrap = document.createElement('div'); wrap.className = 'area'; wrap.style.padding = '10px';
+        var cv = document.createElement('canvas'); cv.className = 'paint';
+        wrap.appendChild(cv); body.appendChild(wrap);
+        var state = document.createElement('div'); state.className = 'stateTxt'; body.appendChild(state);
+        var ctx = cv.getContext('2d');
+        var COLS = 16, ROWS = 12, cells, W, H, n = 0;
+        function init() {
+          W = clamp(wrap.clientWidth - 20, 240, 460); H = 240;
+          cv.width = W; cv.height = H;
+          cells = [];
+          for (var i = 0; i < COLS * ROWS; i++) cells.push(false);
+          ctx.fillStyle = '#caa472'; ctx.fillRect(0, 0, W, H);
+          state.textContent = '0%';
+        }
+        function paintAt(x, y) {
+          if (!cells) return;
+          var r = cv.getBoundingClientRect();
+          if (r.width < 10) return;
+          var px = (x - r.left) * (W / r.width), py = (y - r.top) * (H / r.height);
+          ctx.fillStyle = '#ffe08a';
+          ctx.beginPath(); ctx.arc(px, py, 26, 0, 7); ctx.fill();
+          var painted = 0;
+          for (var cx = 0; cx < COLS; cx++) for (var cy = 0; cy < ROWS; cy++) {
+            var ix = cy * COLS + cx;
+            if (!cells[ix]) {
+              var dx = px - (cx + 0.5) * W / COLS, dy = py - (cy + 0.5) * H / ROWS;
+              if (dx * dx + dy * dy < 26 * 26) cells[ix] = true;
+            }
+            if (cells[ix]) painted++;
+          }
+          var pct = painted / cells.length * 100;
+          state.textContent = pct.toFixed(0) + '%' + (pct >= 95 ? ' — 고르게 발랐어요! 🧈✓' : '');
+          state.className = 'stateTxt' + (pct >= 95 ? ' on' : '');
+          api.count(Math.round(pct));
+        }
+        var downFlag = false;
+        cv.addEventListener('pointerdown', function (e) { try { cv.setPointerCapture(e.pointerId); } catch (x) {} downFlag = true; paintAt(e.clientX, e.clientY); e.preventDefault(); });
+        cv.addEventListener('pointermove', function (e) { if (downFlag) paintAt(e.clientX, e.clientY); });
+        cv.addEventListener('pointerup', function () { downFlag = false; });
+        cv.addEventListener('pointercancel', function () { downFlag = false; });
+        init();
+        this.reset = init;
+      } },
+
+    { id: 'shake', em: '🧂', nm: '흔들기', tag: '모션', needSensor: true,
+      inst: '소금통을 치듯 <b>아무 방향으로 흔들어요</b>. 흔든 횟수를 세요.',
+      build: function (body, api) {
+        var st = { thresh: 5, peak: peakCounter(0.12) };
+        var state = document.createElement('div'); state.className = 'stateTxt'; body.appendChild(state);
+        var cnt = document.createElement('div'); cnt.className = 'bigcount'; cnt.textContent = '0'; body.appendChild(cnt);
+        var gw = document.createElement('div'); gw.className = 'gaugeWrap'; body.appendChild(gw);
+        var m1 = meterRow('흔들 세기');
+        gw.appendChild(m1.el);
+        gw.appendChild(slider('민감도', 3, 10, 0.5, st.thresh, function (v) { st.thresh = v; }));
+        var n = 0;
+        this.onMotion = function (s) {
+          if (!s.ready) return;
+          var active = s.meanAm > st.thresh;
+          state.textContent = active ? '흔드는 중! 🧂' : '대기';
+          state.className = 'stateTxt' + (active ? ' on' : '');
+          if (st.peak(s.am, s.t, st.thresh * 1.4)) { n++; cnt.textContent = n; api.count(n); }
+          m1.set(s.meanAm / 15, s.meanAm.toFixed(1));
+        };
+        this.reset = function () { n = 0; cnt.textContent = '0'; api.count(0); };
+      } },
+
+    { id: 'press', em: '🍔', nm: '누르기', tag: '터치', needSensor: false,
+      inst: '버거를 <b>꾹 누르고 1.5초 유지</b>해요. 링이 다 차면 1회!',
+      build: function (body, api) {
+        var wrap = document.createElement('div'); wrap.className = 'area'; wrap.style.minHeight = '230px';
+        var ring = document.createElement('div'); ring.className = 'ring';
+        ring.innerHTML = '<div class="inner">🍔</div>';
+        wrap.appendChild(ring); body.appendChild(wrap);
+        var cnt = document.createElement('div'); cnt.className = 'bigcount'; cnt.textContent = '0'; body.appendChild(cnt);
+        var n = 0;
+        holdTracker(wrap, 1500, function (p) {
+          ring.style.background = 'conic-gradient(var(--green) ' + p * 360 + 'deg, var(--card2) ' + p * 360 + 'deg)';
+        }, function () {
+          n++; cnt.textContent = n; api.count(n); api.event('완료'); vib(40);
+          ring.querySelector('.inner').textContent = '✓';
+          setTimeout(function () { ring.querySelector('.inner').textContent = '🍔'; ring.style.background = ''; }, 500);
+        });
+        this.reset = function () { n = 0; cnt.textContent = '0'; api.count(0); };
+      } },
+
+    { id: 'sift', em: '🍚', nm: '체치기', tag: '모션', needSensor: true,
+      inst: '체를 치듯 <b>좌우로 탁탁</b> 흔들어요 (직선 왕복).',
+      build: function (body, api) {
+        var st = { thresh: 3.5, peak: peakCounter(0.1) };
+        var state = document.createElement('div'); state.className = 'stateTxt'; body.appendChild(state);
+        var cnt = document.createElement('div'); cnt.className = 'bigcount'; cnt.textContent = '0'; body.appendChild(cnt);
+        var gw = document.createElement('div'); gw.className = 'gaugeWrap'; body.appendChild(gw);
+        var m1 = meterRow('수평 세기'), m2 = meterRow('원형성');
+        gw.appendChild(m1.el); gw.appendChild(m2.el);
+        gw.appendChild(slider('민감도', 2, 8, 0.5, st.thresh, function (v) { st.thresh = v; }));
+        var n = 0;
+        this.onMotion = function (s) {
+          if (!s.ready) return;
+          var active = s.meanHm > st.thresh && (s.ratio === null || s.ratio < 0.45);
+          state.textContent = active ? '체 치는 중! 🍚' : '대기';
+          state.className = 'stateTxt' + (active ? ' on' : '');
+          if (active && st.peak(s.hm, s.t, st.thresh * 1.3)) { n++; cnt.textContent = n; api.count(n); }
+          m1.set(s.meanHm / 12, s.meanHm.toFixed(1));
+          m2.set(s.ratio === null ? 0 : s.ratio, s.ratio === null ? '-' : s.ratio.toFixed(2));
+        };
+        this.reset = function () { n = 0; cnt.textContent = '0'; api.count(0); };
+      } },
+
+    { id: 'roll', em: '🍣', nm: '말기', tag: '모션', needSensor: false,
+      inst: '<b>모션</b>: 김밥을 말듯 폰을 앞으로 <b>굴리듯 기울였다 세우기</b>를 반복해요.<br><b>터치</b>: 화면을 위로 쓸어올려도 한 칸씩 말려요. 5칸이면 완성!',
+      build: function (body, api) {
+        var state = document.createElement('div'); state.className = 'stateTxt'; body.appendChild(state);
+        var prog = document.createElement('div'); prog.className = 'bigcount'; prog.style.fontSize = '34px'; body.appendChild(prog);
+        var area = document.createElement('div'); area.className = 'area';
+        area.innerHTML = '<span class="cEmoji">🍙</span><span>위로 쓸어올리기 (터치 대체)</span>';
+        body.appendChild(area);
+        var cnt = document.createElement('div'); cnt.className = 'stateTxt'; body.appendChild(cnt);
+        var seg = 0, done = 0, acc = 0, lastT = null;
+        function show() {
+          var s = '';
+          for (var i = 0; i < 5; i++) s += i < seg ? '🍙' : '▫️';
+          prog.textContent = s;
+          cnt.textContent = '완성한 김밥: ' + done + '줄';
+        }
+        function addSeg(src) {
+          seg++;
+          api.event(src + ' +1칸'); vib(15);
+          if (seg >= 5) { seg = 0; done++; api.count(done); state.textContent = '김밥 완성! 🍣'; state.className = 'stateTxt on'; vib(60); }
+          show();
+        }
+        this.onMotion = function (s) {
+          if (!s.ready || !s.rr) { lastT = s.t; return; }
+          var w = Math.abs(s.rr.beta || 0);
+          if (lastT !== null && w > 90) {
+            acc += w * (s.t - lastT);
+            if (acc >= 150) { acc = 0; addSeg('모션'); }
+          }
+          lastT = s.t;
+        };
+        strokeTracker(area, function (sk) {
+          if (sk.dy < -60 && sk.dur < 600) addSeg('터치');
+        });
+        show();
+        this.reset = function () { seg = 0; done = 0; acc = 0; api.count(0); state.textContent = ''; show(); };
+      } },
+
+    { id: 'mash', em: '🥔', nm: '으깨기', tag: '터치', needSensor: false,
+      inst: '감자를 <b>꾹 눌러 으깨요</b> — 2초 유지하면 1회. (누르기보다 길어요)',
+      build: function (body, api) {
+        var wrap = document.createElement('div'); wrap.className = 'area'; wrap.style.minHeight = '230px';
+        var ring = document.createElement('div'); ring.className = 'ring';
+        ring.innerHTML = '<div class="inner">🥔</div>';
+        wrap.appendChild(ring); body.appendChild(wrap);
+        var cnt = document.createElement('div'); cnt.className = 'bigcount'; cnt.textContent = '0'; body.appendChild(cnt);
+        var n = 0;
+        holdTracker(wrap, 2000, function (p) {
+          ring.style.background = 'conic-gradient(var(--orange) ' + p * 360 + 'deg, var(--card2) ' + p * 360 + 'deg)';
+          ring.querySelector('.inner').style.transform = 'scale(' + (1 - p * 0.25) + ')';
+        }, function () {
+          n++; cnt.textContent = n; api.count(n); api.event('완료'); vib(50);
+          ring.querySelector('.inner').textContent = '🥣';
+          setTimeout(function () { ring.querySelector('.inner').textContent = '🥔'; ring.style.background = ''; ring.querySelector('.inner').style.transform = ''; }, 500);
+        });
+        this.reset = function () { n = 0; cnt.textContent = '0'; api.count(0); };
+      } },
+
+    { id: 'grate', em: '🧀', nm: '갈기', tag: '터치', needSensor: false,
+      inst: '치즈를 강판에 갈듯 <b>짧고 빠르게 문질러요</b>. 속도가 생명!',
+      build: function (body, api) {
+        var area = document.createElement('div'); area.className = 'area';
+        area.innerHTML = '<span class="cEmoji">🧀</span><span>짧게 빠르게 슥슥슥</span>';
+        body.appendChild(area);
+        var cnt = document.createElement('div'); cnt.className = 'bigcount'; cnt.textContent = '0'; body.appendChild(cnt);
+        var state = document.createElement('div'); state.className = 'stateTxt'; body.appendChild(state);
+        var n = 0, times = [];
+        strokeTracker(area, function (sk) {
+          if (sk.len < 25 || sk.dur > 400) return;
+          n++; times.push(performance.now());
+          times = times.filter(function (t) { return t > performance.now() - 2000; });
+          cnt.textContent = n; api.count(n);
+          var rate = (times.length / 2).toFixed(1);
+          state.textContent = '속도 ' + rate + '회/초' + (times.length >= 6 ? ' — 갈리는 중! 🧀' : '');
+          state.className = 'stateTxt' + (times.length >= 6 ? ' on' : '');
+          vib(8);
+          area.classList.add('hit'); setTimeout(function () { area.classList.remove('hit'); }, 120);
+        });
+        this.reset = function () { n = 0; times = []; cnt.textContent = '0'; api.count(0); state.textContent = ''; };
+      } },
+  ];
+
+  // ================= 라우터 =================
+  var Router = { active: null };
+  var tileGrid = $('tileGrid');
+  ACTIONS.forEach(function (act) {
+    var tile = document.createElement('div'); tile.className = 'tile';
+    var tagCls = act.tag === '모션' ? 'm' : act.tag === '기울기' ? 'g' : 't';
+    tile.innerHTML = '<span class="em">' + act.em + '</span><div class="nm">' + act.nm + '</div>' +
+      '<span class="tag ' + tagCls + '">' + act.tag + '</span><span class="badge"></span>';
+    tile.addEventListener('click', function () { open(act); });
+    act._badge = tile.querySelector('.badge');
+    tileGrid.appendChild(tile);
+  });
+
+  function open(act) {
+    $('home').style.display = 'none';
+    $('screen').style.display = 'block';
+    $('aTitle').textContent = act.em + ' ' + act.nm;
+    $('aInst').innerHTML = act.inst;
+    var body = $('aBody');
+    body.innerHTML = '';
+    var api = {
+      count: function (v) { act._badge.textContent = v || ''; },
+      event: function (detail) {
+        log(act.nm + ': ' + detail);
+        if (Rec.on) Rec.events.push({ t: +(performance.now() / 1000).toFixed(3), action: act.id, detail: detail });
+      },
+    };
+    var inst = Object.create(act);
+    inst.build(body, api);
+    Router.active = inst;
+    Router.refreshSensorNotice();
+  }
+  Router.refreshSensorNotice = function () {
+    var a = Router.active;
+    $('needSensor').style.display = (a && a.needSensor && !Engine.isOn()) ? 'block' : 'none';
+  };
+  $('backBtn').addEventListener('click', function () {
+    Router.active = null;
+    $('screen').style.display = 'none';
+    $('home').style.display = 'block';
+  });
+  $('resetBtn').addEventListener('click', function () {
+    if (Router.active && Router.active.reset) Router.active.reset();
+  });
+
+  $('sensorBtn').addEventListener('click', Engine.start);
+
+  // ================= 시뮬레이션 (데스크톱 검증용) =================
+  // window.__sim.run('flip'|'pan'|'whisk'|'shake'|'pour'|'roll') — 합성 신호를 동기 배치 주입
+  var __sim = { _t: 0 };
+  __sim.run = function (name) {
+    var G = 9.81, dur, gen;
+    var flat = function (a, rr) { return { a: a, g: { x: a.x, y: a.y, z: a.z + G }, rr: rr || null }; };
+    var Z = { x: 0, y: 0, z: 0 };
+    if (name === 'flip') { dur = 2.2; gen = function (el) {
+      if (el < 0.5) return flat(Z);
+      var e = el - 0.5;
+      if (e < 0.12) return flat({ x: 0, y: 0, z: 14 });
+      if (e < 0.24) return flat({ x: 0, y: 0, z: -8 });
+      return flat(Z); }; }
+    else if (name === 'pan') { dur = 3.4; gen = function (el) {
+      if (el < 0.5 || el > 2.1) return flat(Z);
+      return flat({ x: 8 * Math.sin(2 * Math.PI * 4.5 * (el - 0.5)), y: 0, z: 0 }); }; }
+    else if (name === 'whisk') { dur = 3.4; gen = function (el) {
+      if (el < 0.5 || el > 2.1) return flat(Z);
+      var e = el - 0.5;
+      return flat({ x: 6 * Math.cos(2 * Math.PI * 2.2 * e), y: 6 * Math.sin(2 * Math.PI * 2.2 * e), z: 0 }); }; }
+    else if (name === 'shake') { dur = 3.2; gen = function (el) {
+      if (el < 0.5 || el > 1.9) return flat(Z);
+      var e = el - 0.5;
+      return flat({ x: 7 * Math.sin(2 * Math.PI * 4 * e), y: 5 * Math.sin(2 * Math.PI * 3.1 * e + 1), z: 4 * Math.sin(2 * Math.PI * 5 * e + 2) }); }; }
+    else if (name === 'pour') { dur = 4.5; gen = function (el) {
+      var deg = el < 0.6 ? 0 : el < 1.4 ? (el - 0.6) / 0.8 * 70 : el < 3.4 ? 70 : Math.max(0, 70 - (el - 3.4) / 0.6 * 70);
+      var r = deg * Math.PI / 180;
+      return { a: Z, g: { x: G * Math.sin(r), y: G * Math.cos(r), z: 0 }, rr: null }; }; }
+    else if (name === 'roll') { dur = 3.5; gen = function (el) {
+      if (el < 0.5) return flat(Z);
+      return flat({ x: 0, y: 0, z: 0 }, { alpha: 0, beta: 220 * Math.abs(Math.sin(2 * Math.PI * 1.1 * (el - 0.5))), gamma: 0 }); }; }
+    else { log('SIM: 알 수 없음 ' + name); return; }
+    var t0 = Math.max(performance.now() / 1000, __sim._t);
+    var n = function () { return (Math.random() - 0.5) * 0.5; };
+    for (var el = 0; el <= dur; el += 1 / 60) {
+      var s = gen(el);
+      Engine.process(t0 + el, s.a.x + n(), s.a.y + n(), s.a.z + n(),
+                     s.g.x + n(), s.g.y + n(), s.g.z + n(), s.rr);
+    }
+    __sim._t = t0 + dur + 0.01;
+    log('SIM 완료: ' + name);
+  };
+  window.__sim = __sim;
+  if (location.search.indexOf('sim') >= 0) {
+    var bar = $('simBar'); bar.style.display = 'flex';
+    ['flip', 'pan', 'whisk', 'shake', 'pour', 'roll'].forEach(function (nm) {
+      var b = document.createElement('button'); b.textContent = 'SIM ' + nm;
+      b.addEventListener('click', function () { __sim.run(nm); });
+      bar.appendChild(b);
+    });
+  }
+
+  log('쿠킹클래스 동작 테스트 로드 완료 — 13종');
 })();
 </script>
 </body>
