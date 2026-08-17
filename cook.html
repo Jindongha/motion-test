@@ -94,9 +94,51 @@
   #scrRoll, #scrRoll2 { background: linear-gradient(180deg, #E7F0DC 0%, var(--cream) 55%); }
   #scrDone { background: linear-gradient(180deg, #FFDFA1 0%, var(--cream) 60%); }
 
-  /* ---- 휘젓기 ---- */
-  #batter { position: absolute; left: 24%; top: 20%; width: 37%; aspect-ratio: 1; border-radius: 999px; pointer-events: none; z-index: 2; }
-  #batter img { width: 100%; height: 100%; }
+  /* ---- 휘젓기: 그림 전체가 젓는 궤적을 그림 (거품기가 원을 그리는 효과) ---- */
+  #stirImg { transform: scale(1.12); will-change: transform; }
+
+  /* ---- 붓기: 계란물 볼이 팬 위에서 기울어짐 ---- */
+  .bowl { position: absolute; left: 6%; top: -4%; width: 36%; aspect-ratio: 1; border-radius: 999px; overflow: hidden;
+          border: 4px solid #fff; box-shadow: 0 8px 20px rgba(91,66,48,.28); z-index: 4;
+          transform-origin: 88% 82%; transition: transform .1s linear; pointer-events: none; }
+  .bowl img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* ---- 말기: 팬 안에서 계란이 말려 올라감 ---- */
+  .eggArea { position: absolute; left: 23%; top: 12%; width: 54%; height: 44%; z-index: 2; pointer-events: none; }
+  .rolledCover { position: absolute; left: 2%; right: 2%; bottom: 0; height: 0; background: #33383E; border-radius: 8px; }
+  .eggRollBar { position: absolute; left: 0; right: 0; bottom: 0; height: 26%; border-radius: 14px;
+                background: linear-gradient(180deg, #FFE49B, #F3B94C); border: 3px solid #E8A13C;
+                display: flex; align-items: center; justify-content: space-around; box-shadow: 0 3px 8px rgba(91,66,48,.25); }
+  .eggRollBar .spir { width: 45%; aspect-ratio: 1; max-height: 78%; border-radius: 999px; border: 3px solid #E8A13C; position: relative; }
+  .eggRollBar .spir::after { content: ''; position: absolute; left: 50%; top: 50%; width: 40%; height: 40%; margin: -20% 0 0 -20%;
+                             border-radius: 999px; border: 2.5px solid #E8A13C; border-right-color: transparent; }
+
+  /* ---- 조작 힌트 오버레이 ---- */
+  .hintOv { position: absolute; inset: 0; z-index: 12; display: flex; align-items: center; justify-content: center;
+            background: rgba(255,247,236,.78); backdrop-filter: blur(3px); opacity: 1; transition: opacity .3s; }
+  .hintOv.hide { opacity: 0; pointer-events: none; }
+  .hintCard { background: #fff; border-radius: 26px; padding: 26px 28px 22px; box-shadow: 0 16px 40px rgba(91,66,48,.25);
+              display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; max-width: 290px; }
+  .hintPic { font-size: 52px; height: 76px; display: flex; align-items: center; justify-content: center; }
+  .hintTitle { font-family: 'Jua'; font-size: 19px; color: var(--brown); }
+  .hintSub { font-size: 13px; color: var(--sub); line-height: 1.55; }
+  .hintGo { margin-top: 8px; background: var(--orange); color: #fff; font-family: 'Jua'; font-size: 16px; padding: 11px 34px;
+            border: 0; border-radius: 999px; box-shadow: 0 6px 14px rgba(232,112,58,.35); }
+  .picCircle { animation: picCircle 1.5s linear infinite; }
+  @keyframes picCircle {
+    0% { transform: translate(11px, 0) rotate(8deg); } 25% { transform: translate(0, 11px) rotate(0deg); }
+    50% { transform: translate(-11px, 0) rotate(-8deg); } 75% { transform: translate(0, -11px) rotate(0deg); }
+    100% { transform: translate(11px, 0) rotate(8deg); }
+  }
+  .picTilt { animation: picTilt 2s ease-in-out infinite; }
+  @keyframes picTilt {
+    0%, 15% { transform: rotate(0deg); } 45%, 70% { transform: rotate(-42deg); } 95%, 100% { transform: rotate(0deg); }
+  }
+  .picSwipe { animation: picSwipe 2s ease-in-out infinite; }
+  @keyframes picSwipe {
+    0% { transform: translateY(22px); opacity: 0; } 20% { opacity: 1; }
+    75% { transform: translateY(-18px); opacity: 1; } 100% { transform: translateY(-26px); opacity: 0; }
+  }
 
   /* ---- 붓기 ---- */
   .pourCardWrap { width: 100%; transition: transform .12s linear; transform-origin: 50% 90%; }
@@ -191,8 +233,7 @@
     </div>
     <div class="mid">
       <div class="card" id="stirCard">
-        <div class="img"><img src="assets/eggroll2-3.png" alt=""></div>
-        <div id="batter"><img src="assets/eggroll2-batter.png" alt=""></div>
+        <div class="img"><img id="stirImg" src="assets/eggroll2-3.png" alt=""></div>
         <div class="tag">폰으로 원을 그려도, 손가락으로 저어도 OK</div>
       </div>
       <div class="panel">
@@ -201,6 +242,14 @@
       </div>
     </div>
     <div class="guide"><span class="pill" id="stirPill">그릇 위에서 빙글빙글 🥚</span></div>
+    <div class="hintOv" id="hintStir">
+      <div class="hintCard">
+        <div class="hintPic picCircle">📱</div>
+        <div class="hintTitle">폰으로 작은 원을 그려요</div>
+        <div class="hintSub">국자로 젓듯 손목으로 빙글빙글~<br>손가락으로 그릇을 저어도 돼요 👆</div>
+        <button class="hintGo jua">알겠어요!</button>
+      </div>
+    </div>
   </section>
 
   <!-- 2단계 붓기 -->
@@ -216,8 +265,9 @@
         <div class="card" id="pourCard">
           <div class="img"><img src="assets/eggroll2-4.png" alt=""></div>
           <div class="panFillCover" id="pourCover"></div>
-          <div class="stream" id="pourStream"></div>
-          <div class="tag">폰과 함께 기울여요 📱</div>
+          <div class="stream" id="pourStream" style="left:36%;top:19%;"></div>
+          <div class="bowl" id="pourBowl"><img src="assets/eggroll2-3.png" alt=""></div>
+          <div class="tag" style="left:auto;right:12px;">볼이 폰 기울기를 따라와요 🥣</div>
         </div>
       </div>
       <div class="panel">
@@ -231,6 +281,14 @@
       </div>
     </div>
     <div class="guide"><span class="pill" id="pourPill">초록 구간을 유지하며 부어요 🥣</span></div>
+    <div class="hintOv" id="hintPour">
+      <div class="hintCard">
+        <div class="hintPic picTilt">📱</div>
+        <div class="hintTitle">폰을 컵처럼 기울여요</div>
+        <div class="hintSub">천천히 옆으로 기울이면 계란물이 쪼르륵~<br>게이지의 <b style="color:var(--green)">초록 구간</b>을 유지해요</div>
+        <button class="hintGo jua">알겠어요!</button>
+      </div>
+    </div>
   </section>
 
   <!-- 3단계 말기 -->
@@ -243,19 +301,27 @@
     </div>
     <div class="mid">
       <div class="card rollCard" id="rollCard">
-        <div class="img"><img src="assets/eggroll2-5.png" alt=""></div>
+        <div class="img"><img src="assets/eggroll2-4.png" alt=""></div>
+        <div class="eggArea">
+          <div class="rolledCover" id="rollCover"></div>
+          <div class="eggRollBar" id="rollBar"><div class="spir" id="rollSpir1"></div><div class="spir" id="rollSpir2"></div></div>
+        </div>
         <div class="swipeArrows"><span>↑</span><span>↑</span><div class="fingertip">👆</div></div>
         <div class="tag">90° 위로 천천히!</div>
       </div>
       <div class="panel rollPanel">
-        <div class="rollTrack" id="rollTrack">
-          <div class="rollSheet" id="rollSheet"></div>
-          <div class="rollBall" id="rollBall"><div></div></div>
-        </div>
-        <div class="rollHint" id="rollHint">쓸어올릴 때마다 한 칸씩 돌돌!</div>
+        <div class="rollHint" id="rollHint">쓸어올릴 때마다 계란이 돌돌 말려요!</div>
       </div>
     </div>
     <div class="guide"><span class="pill" id="rollPill">화면을 위로 스으윽~ 🌀</span></div>
+    <div class="hintOv" id="hintRoll">
+      <div class="hintCard">
+        <div class="hintPic picSwipe">👆</div>
+        <div class="hintTitle">아래에서 위로 천천히</div>
+        <div class="hintSub">화면을 꾹 누르고 <b>천—천—히</b> 쓸어올려요<br>빠르게 휙 하면 계란이 풀려버려요! 🐢</div>
+        <button class="hintGo jua">알겠어요!</button>
+      </div>
+    </div>
   </section>
 
   <!-- 4단계: 붓기 반복 -->
@@ -271,8 +337,9 @@
         <div class="card" id="pour2Card">
           <div class="img"><img src="assets/eggroll2-4.png" alt=""></div>
           <div class="panFillCover" id="pour2Cover"></div>
-          <div class="stream" id="pour2Stream"></div>
-          <div class="tag">폰과 함께 기울여요 📱</div>
+          <div class="stream" id="pour2Stream" style="left:36%;top:19%;"></div>
+          <div class="bowl" id="pour2Bowl"><img src="assets/eggroll2-3.png" alt=""></div>
+          <div class="tag" style="left:auto;right:12px;">볼이 폰 기울기를 따라와요 🥣</div>
         </div>
       </div>
       <div class="panel">
@@ -298,16 +365,16 @@
     </div>
     <div class="mid">
       <div class="card rollCard" id="roll2Card">
-        <div class="img"><img src="assets/eggroll2-5.png" alt=""></div>
+        <div class="img"><img src="assets/eggroll2-4.png" alt=""></div>
+        <div class="eggArea">
+          <div class="rolledCover" id="roll2Cover"></div>
+          <div class="eggRollBar" id="roll2Bar"><div class="spir" id="roll2Spir1"></div><div class="spir" id="roll2Spir2"></div></div>
+        </div>
         <div class="swipeArrows"><span>↑</span><span>↑</span><div class="fingertip">👆</div></div>
         <div class="tag">한 번 더 말면 완성! 🌀</div>
       </div>
       <div class="panel rollPanel">
-        <div class="rollTrack" id="roll2Track">
-          <div class="rollSheet" id="roll2Sheet"></div>
-          <div class="rollBall" id="roll2Ball"><div></div></div>
-        </div>
-        <div class="rollHint" id="roll2Hint">쓸어올릴 때마다 한 칸씩 돌돌!</div>
+        <div class="rollHint" id="roll2Hint">쓸어올릴 때마다 계란이 돌돌 말려요!</div>
       </div>
     </div>
     <div class="guide"><span class="pill" id="roll2Pill">화면을 위로 스으윽~ 🌀</span></div>
@@ -477,15 +544,16 @@
   controllers.scrStir = (function () {
     var TARGET = 6; // 목표 회전수
     var cum = 0, doneFlag = false, lastBubble = 0, speed = 0;
-    var card = $('stirCard'), batter = $('batter'), fill = $('stirFill'), val = $('stirVal'), pill = $('stirPill');
+    var card = $('stirCard'), img = $('stirImg'), fill = $('stirFill'), val = $('stirVal'), pill = $('stirPill');
     function add(dRad, t) {
       if (doneFlag) return;
       cum += dRad;
       speed = speed * 0.9 + Math.abs(dRad) * 6; // 대략적 속도 지표
       var rev = Math.abs(cum) / (2 * Math.PI);
-      var deg = cum * 180 / Math.PI;
-      batter.style.transform = 'rotate(' + deg + 'deg)';
-      card.style.transform = 'rotate(' + (Math.sin(cum * 0.7) * clamp(speed, 0, 2)) + 'deg)';
+      // 그림 전체가 젓는 원 궤적을 그림 → 거품기가 원을 그리는 것처럼 보임
+      var R = 5 + clamp(speed, 0, 2) * 3.5;
+      img.style.transform = 'scale(1.12) translate(' + (Math.cos(cum) * R).toFixed(1) + 'px,' +
+        (Math.sin(cum) * R).toFixed(1) + 'px) rotate(' + (Math.sin(cum) * 2.5).toFixed(1) + 'deg)';
       var pct = clamp(rev / TARGET * 100, 0, 100);
       fill.style.width = pct + '%';
       val.textContent = pct.toFixed(0) + '%';
@@ -533,7 +601,7 @@
 
   // ================= 붓기 (2단계 & 4단계 전반) =================
   function makePour(ids, target, nextId, stampEmoji) {
-    var tiltWrap = $(ids.tilt), card = $(ids.card), cover = $(ids.cover), stream = $(ids.stream);
+    var bowl = $(ids.bowl), card = $(ids.card), cover = $(ids.cover), stream = $(ids.stream);
     var knob = $(ids.knob), zone = $(ids.zone), val = $(ids.val), fillVal = $(ids.fillVal), fillBar = $(ids.fillBar), pill = $(ids.pill);
     var ZLO = 25, ZHI = 55, MAXA = 90;
     var fillPct = 0, doneFlag = false, baseTilt = null, baseSamples = [], lastT = null, dropAcc = 0;
@@ -544,7 +612,7 @@
       val.textContent = a.toFixed(0) + '°' + (a >= ZLO && a <= ZHI ? ' · 딱 좋아요!' : '');
       knob.style.left = (a / MAXA * 100) + '%';
       zone.classList.toggle('hot', a >= ZLO && a <= ZHI);
-      tiltWrap.style.transform = 'rotate(' + (-a * 0.45) + 'deg)';
+      bowl.style.transform = 'rotate(' + (a * 0.9) + 'deg)'; // 볼이 팬 쪽으로 기울어짐
       var pouring = a >= ZLO;
       var rate = pouring ? clamp((a - ZLO + 6) / (ZHI - ZLO + 6), 0.15, 1.4) : 0;
       if (a > ZHI + 12) rate = 1.7;
@@ -566,7 +634,7 @@
         : a > ZHI ? '살짝만 낮춰요~' : '잘 붓고 있어요! 🍳';
       if (fillPct >= target && !doneFlag) {
         doneFlag = true;
-        tiltWrap.style.transform = 'rotate(0deg)';
+        bowl.style.transform = 'rotate(0deg)';
         stream.style.opacity = 0;
         card.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.05)' }, { transform: 'scale(1)' }], { duration: 300 });
         setTimeout(function () { stepClear(stampEmoji, nextId); }, 350);
@@ -576,7 +644,7 @@
       var r = card.getBoundingClientRect();
       var sp = document.createElement('span');
       sp.className = 'fx';
-      sp.style.cssText = 'left:' + (r.left + r.width / 2 + (Math.random() * 26 - 13)) + 'px;top:' + (r.top + r.height * 0.42) + 'px;' +
+      sp.style.cssText = 'left:' + (r.left + r.width * 0.38 + (Math.random() * 22 - 11)) + 'px;top:' + (r.top + r.height * 0.5) + 'px;' +
         'width:8px;height:8px;border-radius:999px;background:#FFD66B;border:1.5px solid #E8A13C;';
       document.body.appendChild(sp);
       var dx = Math.random() * 40 - 20;
@@ -618,22 +686,24 @@
       reset: function () { fillPct = 0; doneFlag = false; if (loopTimer) { clearInterval(loopTimer); loopTimer = null; } }
     };
   }
-  controllers.scrPour = makePour({ tilt: 'pourTilt', card: 'pourCard', cover: 'pourCover', stream: 'pourStream', knob: 'pourKnob', zone: 'pourZone', val: 'pourVal', fillVal: 'pourFillVal', fillBar: 'pourFillBar', pill: 'pourPill' }, 100, 'scrRoll', '🥣');
-  controllers.scrPour2 = makePour({ tilt: 'pour2Tilt', card: 'pour2Card', cover: 'pour2Cover', stream: 'pour2Stream', knob: 'pour2Knob', zone: 'pour2Zone', val: 'pour2Val', fillVal: 'pour2FillVal', fillBar: 'pour2FillBar', pill: 'pour2Pill' }, 60, 'scrRoll2', '🥣');
+  controllers.scrPour = makePour({ bowl: 'pourBowl', card: 'pourCard', cover: 'pourCover', stream: 'pourStream', knob: 'pourKnob', zone: 'pourZone', val: 'pourVal', fillVal: 'pourFillVal', fillBar: 'pourFillBar', pill: 'pourPill' }, 100, 'scrRoll', '🥣');
+  controllers.scrPour2 = makePour({ bowl: 'pour2Bowl', card: 'pour2Card', cover: 'pour2Cover', stream: 'pour2Stream', knob: 'pour2Knob', zone: 'pour2Zone', val: 'pour2Val', fillVal: 'pour2FillVal', fillBar: 'pour2FillBar', pill: 'pour2Pill' }, 60, 'scrRoll2', '🥣');
 
   // ================= 말기 (3단계 & 4단계 후반) =================
   function makeRoll(ids, cells, nextId) {
-    var card = $(ids.card), track = $(ids.track), sheet = $(ids.sheet), ball = $(ids.ball), hint = $(ids.hint), pill = $(ids.pill);
+    var card = $(ids.card), cover = $(ids.cover), bar = $(ids.bar), hint = $(ids.hint), pill = $(ids.pill);
+    var spirs = [$(ids.spir1), $(ids.spir2)];
     var cell = 0, doneFlag = false, drag = null;
-    var W = 288, BALL = 44;
     function layout(progress) {
-      // progress: 현재 셀 내 진행도 0~1. 볼 위치/회전 + 시트 길이 실시간 반영
-      var span = (W - BALL) / cells;
-      var x = (cell + clamp(progress, 0, 1)) * span;
-      ball.style.transform = 'translateX(' + x + 'px) rotate(' + ((cell + progress) * 130) + 'deg)';
-      var sheetLeft = x + BALL - 6;
-      sheet.style.left = sheetLeft + 'px';
-      sheet.style.width = Math.max(0, W - sheetLeft) + 'px';
+      // 팬 안에서 계란이 아래→위로 말려 올라감: 롤이 전진하며 도톰해지고, 지나간 자리는 빈 팬
+      var overall = clamp((cell + clamp(progress, 0, 1)) / cells, 0, 1);
+      var rollH = 24 + overall * 12;
+      var bottom = overall * (100 - rollH);
+      bar.style.height = rollH + '%';
+      bar.style.bottom = bottom + '%';
+      cover.style.height = bottom + '%';
+      var rot = overall * 720;
+      spirs.forEach(function (s2) { s2.style.transform = 'rotate(' + rot + 'deg)'; });
     }
     card.addEventListener('pointerdown', function (e) {
       if (doneFlag) return;
@@ -667,7 +737,7 @@
           layout(0);
           card.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.04) rotate(1deg)' }, { transform: 'scale(1)' }], { duration: 240 });
           floatUp(card.getBoundingClientRect(), '🌀');
-          hint.textContent = cell < cells ? ('돌돌… ' + cell + ' / ' + cells + ' 바퀴!') : '완벽하게 말았어요!';
+          hint.textContent = cell < cells ? ('돌돌… ' + cell + ' / ' + cells + ' 바퀴!') : '완벽하게 말았어요! 🍳';
           if (cell >= cells) {
             doneFlag = true;
             setTimeout(function () { stepClear('🌀', nextId); }, 380);
@@ -707,8 +777,16 @@
       reset: function () { cell = 0; doneFlag = false; layout(0); }
     };
   }
-  controllers.scrRoll = makeRoll({ card: 'rollCard', track: 'rollTrack', sheet: 'rollSheet', ball: 'rollBall', hint: 'rollHint', pill: 'rollPill' }, 3, 'scrPour2');
-  controllers.scrRoll2 = makeRoll({ card: 'roll2Card', track: 'roll2Track', sheet: 'roll2Sheet', ball: 'roll2Ball', hint: 'roll2Hint', pill: 'roll2Pill' }, 2, 'scrDone');
+  controllers.scrRoll = makeRoll({ card: 'rollCard', cover: 'rollCover', bar: 'rollBar', spir1: 'rollSpir1', spir2: 'rollSpir2', hint: 'rollHint', pill: 'rollPill' }, 3, 'scrPour2');
+  controllers.scrRoll2 = makeRoll({ card: 'roll2Card', cover: 'roll2Cover', bar: 'roll2Bar', spir1: 'roll2Spir1', spir2: 'roll2Spir2', hint: 'roll2Hint', pill: 'roll2Pill' }, 2, 'scrDone');
+
+  // ================= 조작 힌트 오버레이 =================
+  document.querySelectorAll('.hintOv').forEach(function (ov) {
+    ov.addEventListener('pointerdown', function (e) {
+      ov.classList.add('hide');
+      e.stopPropagation();
+    });
+  });
 
   // ================= 완성 =================
   function doneCelebrate() {
