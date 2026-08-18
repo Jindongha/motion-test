@@ -211,7 +211,7 @@
       <div class="chip" style="box-shadow: 0 3px 8px var(--shadow);">냠냠 쿠킹클래스 · 프로토타입</div>
     </div>
     <div class="prepHero">
-      <div class="heroCircle"><img src="assets/eggroll2-6.png" alt="계란말이"></div>
+      <div class="heroCircle"><img src="assets/eggroll2-6.webp" alt="계란말이"></div>
       <h1>계란말이</h1>
       <div class="chipRow"><span class="chip">난이도 ★★☆</span><span class="chip">약 2분</span><span class="chip">동작 4개</span></div>
     </div>
@@ -235,7 +235,7 @@
     </div>
     <div class="mid">
       <div class="card" id="stirCard">
-        <div class="img" id="stirWrap"><img id="stirFA1" src="assets/whisk-a1.jpg" alt=""><img id="stirFA2" src="assets/whisk-a2.jpg" alt=""><img id="stirFB1" src="assets/whisk-b1.jpg" alt=""><img id="stirFB2" src="assets/whisk-b2.jpg" alt=""><img id="stirFin" src="assets/whisk-final.jpg" alt=""></div>
+        <div class="img" id="stirWrap"><img id="stirF1" data-src="assets/whisk-1.webp" alt=""><img id="stirF2" data-src="assets/whisk-2.webp" alt=""><img id="stirF3" data-src="assets/whisk-3.webp" alt=""><img id="stirF4" data-src="assets/whisk-4.webp" alt=""><img id="stirF5" data-src="assets/whisk-5.webp" alt=""><img id="stirF6" data-src="assets/whisk-6.webp" alt=""></div>
         <div class="tag">폰으로 원을 그려도, 손가락으로 저어도 OK</div>
       </div>
       <div class="panel">
@@ -265,10 +265,10 @@
     <div class="mid">
       <div class="pourCardWrap" id="pourTilt">
         <div class="card" id="pourCard">
-          <div class="img"><img src="assets/eggroll2-4.png" alt=""></div>
+          <div class="img"><img data-src="assets/eggroll2-4.webp" alt=""></div>
           <div class="panFillCover" id="pourCover"></div>
           <div class="stream" id="pourStream" style="left:36%;top:19%;"></div>
-          <div class="bowl" id="pourBowl"><img src="assets/eggroll2-3.png" alt=""></div>
+          <div class="bowl" id="pourBowl"><img data-src="assets/eggroll2-3.webp" alt=""></div>
           <div class="tag" style="left:auto;right:12px;">볼이 폰 기울기를 따라와요 🥣</div>
         </div>
       </div>
@@ -303,7 +303,7 @@
     </div>
     <div class="mid">
       <div class="card rollCard" id="rollCard">
-        <div class="img" id="rollWrap"><img src="assets/egg-batter.jpg" alt=""><img id="rollF2" src="assets/egg-halfroll.jpg" alt=""><img id="rollF3" src="assets/egg-rolled.jpg" alt=""></div>
+        <div class="img" id="rollWrap"><img data-src="assets/egg-batter.webp" alt=""><img id="rollF2" data-src="assets/egg-halfroll.webp" alt=""><img id="rollF3" data-src="assets/egg-rolled.webp" alt=""></div>
         <div class="swipeArrows"><span>↑</span><span>↑</span><div class="fingertip">👆</div></div>
         <div class="tag">90° 위로 천천히!</div>
       </div>
@@ -333,10 +333,10 @@
     <div class="mid">
       <div class="pourCardWrap" id="pour2Tilt">
         <div class="card" id="pour2Card">
-          <div class="img"><img src="assets/eggroll2-4.png" alt=""></div>
+          <div class="img"><img data-src="assets/eggroll2-4.webp" alt=""></div>
           <div class="panFillCover" id="pour2Cover"></div>
           <div class="stream" id="pour2Stream" style="left:36%;top:19%;"></div>
-          <div class="bowl" id="pour2Bowl"><img src="assets/eggroll2-3.png" alt=""></div>
+          <div class="bowl" id="pour2Bowl"><img data-src="assets/eggroll2-3.webp" alt=""></div>
           <div class="tag" style="left:auto;right:12px;">볼이 폰 기울기를 따라와요 🥣</div>
         </div>
       </div>
@@ -363,7 +363,7 @@
     </div>
     <div class="mid">
       <div class="card rollCard" id="roll2Card">
-        <div class="img" id="roll2Wrap"><img src="assets/egg-batter.jpg" alt=""><img id="roll2F2" src="assets/egg-halfroll.jpg" alt=""><img id="roll2F3" src="assets/egg-rolled.jpg" alt=""></div>
+        <div class="img" id="roll2Wrap"><img data-src="assets/egg-batter.webp" alt=""><img id="roll2F2" data-src="assets/egg-halfroll.webp" alt=""><img id="roll2F3" data-src="assets/egg-rolled.webp" alt=""></div>
         <div class="swipeArrows"><span>↑</span><span>↑</span><div class="fingertip">👆</div></div>
         <div class="tag">한 번 더 말면 완성! 🌀</div>
       </div>
@@ -378,7 +378,7 @@
   <section class="screen" id="scrDone">
     <div class="doneKicker">🎉 요리 완성!</div>
     <div class="doneTitle jua">계란말이 마스터!</div>
-    <div class="doneCircle"><img src="assets/eggroll2-6.png" alt="계란말이 완성"></div>
+    <div class="doneCircle"><img data-src="assets/eggroll2-6.webp" alt="계란말이 완성"></div>
     <div class="doneBadge jua">완성!</div>
     <div class="doneSub">4단계 중 4단계 성공</div>
     <div class="doneList">
@@ -498,6 +498,15 @@
   // ================= 화면 전환 & 스탬프 =================
   var Game = { active: null };
   var order = ['scrStir', 'scrPour', 'scrRoll', 'scrPour2', 'scrRoll2', 'scrDone'];
+  // 단계별 지연 로딩: 요리 하나가 그림 여러 장을 쓰니 전부 미리 받지 않고 직전에 받는다
+  function hydrate(id) {
+    var el = id && $(id);
+    if (!el) return;
+    [].forEach.call(el.querySelectorAll('img[data-src]'), function (im) {
+      im.src = im.getAttribute('data-src');
+      im.removeAttribute('data-src');
+    });
+  }
   var controllers = {};
   var current = 'scrPrep';
   function goto(id) {
@@ -512,6 +521,7 @@
       prev.style.transition = '';
     }, 500);
     current = id;
+    hydrate(order[order.indexOf(id) + 1]); // 다음 단계 그림 미리 받아두기
     Game.active = controllers[id] || null;
     if (Game.active && Game.active.enter) Game.active.enter();
     if (id === 'scrDone') doneCelebrate();
@@ -539,7 +549,10 @@
     var TARGET = 6; // 목표 회전수
     var cum = 0, doneFlag = false, lastBubble = 0, speed = 0;
     var card = $('stirCard'), wrap = $('stirWrap'), fill = $('stirFill'), val = $('stirVal'), pill = $('stirPill');
-    var frames = [$('stirFA1'), $('stirFA2'), $('stirFB1'), $('stirFB2'), $('stirFin')];
+    var frames = [$('stirF1'), $('stirF2'), $('stirF3'), $('stirF4'), $('stirF5'), $('stirF6')];
+    // 셀 순서: 1↔2 왕복 → 3↔4 왕복 → 5 → 완성 6
+    var SEQ = [0, 1, 0, 1, 2, 3, 2, 3, 4];
+    var STEP = TARGET / SEQ.length; // 프레임 한 컷당 회전수
     var curFrame = 0;
     function showFrame(i) {
       if (i === curFrame) return;
@@ -553,9 +566,7 @@
       cum += dRad;
       var rev = Math.abs(cum) / (2 * Math.PI);
       var pct = clamp(rev / TARGET * 100, 0, 100);
-      // 1↔2 왕복 → 3↔4 왕복 → 완성(7): 반 바퀴마다 프레임 탁탁
-      var toggle = Math.floor(rev * 2) % 2;
-      showFrame((pct < 50 ? 0 : 2) + toggle);
+      showFrame(SEQ[clamp(Math.floor(rev / STEP), 0, SEQ.length - 1)]);
       fill.style.width = pct + '%';
       val.textContent = pct.toFixed(0) + '%';
       if (rev - lastBubble > 0.5) {
@@ -568,7 +579,7 @@
       }
       if (rev >= TARGET) {
         doneFlag = true;
-        showFrame(4); // 완성 컷 (뽀얗게 풀린 계란물)
+        showFrame(5); // 완성 컷 (뽀얗게 풀린 계란물)
         wrap.style.transform = '';
         card.animate([
           { transform: 'scale(1)' }, { transform: 'scale(1.05)' }, { transform: 'scale(1)' }
@@ -598,7 +609,11 @@
         if (!s.ready) return;
         if (s.dAng !== null && s.hm > 2.5) add(s.dAng, s.t);
       },
-      reset: function () { cum = 0; doneFlag = false; lastBubble = 0; fill.style.width = '0'; val.textContent = '0%'; }
+      reset: function () {
+        cum = 0; doneFlag = false; lastBubble = 0; fill.style.width = '0'; val.textContent = '0%';
+        curFrame = 0; wrap.style.transform = '';
+        for (var k = 0; k < frames.length; k++) frames[k].style.opacity = k === 0 ? '1' : '0';
+      }
     };
   })();
 
@@ -806,6 +821,7 @@
   document.querySelectorAll('.xquit').forEach(function (b) { b.addEventListener('click', function () { location.reload(); }); });
 
   // ================= 시작 =================
+  hydrate('scrStir'); // 준비 화면을 보는 동안 1단계 그림만 미리 받는다
   $('startBtn').addEventListener('click', function () {
     Engine.start(function (ok) {
       // 센서가 없어도(데스크톱/권한 거부) 터치 대체 조작으로 진행
