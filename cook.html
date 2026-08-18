@@ -95,8 +95,9 @@
   #scrRoll, #scrRoll2 { background: linear-gradient(180deg, #E7F0DC 0%, var(--cream) 55%); }
   #scrDone { background: linear-gradient(180deg, #FFDFA1 0%, var(--cream) 60%); }
 
-  /* ---- 휘젓기: 그림 전체가 젓는 궤적 + 깬 계란→계란물 프레임 크로스페이드 ---- */
-  #stirWrap { transform: scale(1.12); will-change: transform; }
+  /* ---- 휘젓기: 거품기 왕복 셀 애니메이션 (1↔2 → 3↔4 → 완성) ---- */
+  #stirWrap { will-change: transform; transition: transform .12s; }
+  #scrStir .card { aspect-ratio: 1/1; }
 
   /* ---- 붓기: 계란물 볼이 팬 위에서 기울어짐 ---- */
   .bowl { position: absolute; left: 6%; top: -4%; width: 36%; aspect-ratio: 1; border-radius: 999px; overflow: hidden;
@@ -234,7 +235,7 @@
     </div>
     <div class="mid">
       <div class="card" id="stirCard">
-        <div class="img" id="stirWrap"><img src="assets/egg-cracked.jpg" alt=""><img id="stirF2" src="assets/egg-batter.jpg" alt=""></div>
+        <div class="img" id="stirWrap"><img id="stirFA1" src="assets/whisk-a1.jpg" alt=""><img id="stirFA2" src="assets/whisk-a2.jpg" alt=""><img id="stirFB1" src="assets/whisk-b1.jpg" alt=""><img id="stirFB2" src="assets/whisk-b2.jpg" alt=""><img id="stirFin" src="assets/whisk-final.jpg" alt=""></div>
         <div class="tag">폰으로 원을 그려도, 손가락으로 저어도 OK</div>
       </div>
       <div class="panel">
@@ -537,18 +538,24 @@
   controllers.scrStir = (function () {
     var TARGET = 6; // 목표 회전수
     var cum = 0, doneFlag = false, lastBubble = 0, speed = 0;
-    var card = $('stirCard'), wrap = $('stirWrap'), f2 = $('stirF2'), fill = $('stirFill'), val = $('stirVal'), pill = $('stirPill');
+    var card = $('stirCard'), wrap = $('stirWrap'), fill = $('stirFill'), val = $('stirVal'), pill = $('stirPill');
+    var frames = [$('stirFA1'), $('stirFA2'), $('stirFB1'), $('stirFB2'), $('stirFin')];
+    var curFrame = 0;
+    function showFrame(i) {
+      if (i === curFrame) return;
+      curFrame = i;
+      for (var k = 0; k < frames.length; k++) frames[k].style.opacity = k === i ? '1' : '0';
+      // 프레임이 바뀔 때마다 살짝 바운스 (셀 애니메이션 촉감)
+      wrap.style.transform = 'scale(1.02) rotate(' + (i % 2 === 0 ? -0.7 : 0.7) + 'deg)';
+    }
     function add(dRad, t) {
       if (doneFlag) return;
       cum += dRad;
-      speed = speed * 0.9 + Math.abs(dRad) * 6; // 대략적 속도 지표
       var rev = Math.abs(cum) / (2 * Math.PI);
-      // 그림 전체가 젓는 원 궤적 + 저을수록 깬 계란 → 풀린 계란물로 크로스페이드
-      var R = 5 + clamp(speed, 0, 2) * 3.5;
-      wrap.style.transform = 'scale(1.12) translate(' + (Math.cos(cum) * R).toFixed(1) + 'px,' +
-        (Math.sin(cum) * R).toFixed(1) + 'px) rotate(' + (Math.sin(cum) * 2.5).toFixed(1) + 'deg)';
       var pct = clamp(rev / TARGET * 100, 0, 100);
-      f2.style.opacity = (pct / 100).toFixed(2);
+      // 1↔2 왕복 → 3↔4 왕복 → 완성(7): 반 바퀴마다 프레임 탁탁
+      var toggle = Math.floor(rev * 2) % 2;
+      showFrame((pct < 50 ? 0 : 2) + toggle);
       fill.style.width = pct + '%';
       val.textContent = pct.toFixed(0) + '%';
       if (rev - lastBubble > 0.5) {
@@ -561,10 +568,12 @@
       }
       if (rev >= TARGET) {
         doneFlag = true;
+        showFrame(4); // 완성 컷 (뽀얗게 풀린 계란물)
+        wrap.style.transform = '';
         card.animate([
           { transform: 'scale(1)' }, { transform: 'scale(1.05)' }, { transform: 'scale(1)' }
         ], { duration: 300 });
-        setTimeout(function () { stepClear('🥚', 'scrPour'); }, 350);
+        setTimeout(function () { stepClear('🥚', 'scrPour'); }, 500);
       }
     }
     // 터치: 원 드래그
