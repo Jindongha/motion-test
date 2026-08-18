@@ -100,10 +100,6 @@
   #scrStir .card { aspect-ratio: 1/1; }
 
   /* ---- 붓기: 계란물 볼이 팬 위에서 기울어짐 ---- */
-  .bowl { position: absolute; left: 6%; top: -4%; width: 36%; aspect-ratio: 1; border-radius: 999px; overflow: hidden;
-          border: 4px solid #fff; box-shadow: 0 8px 20px rgba(91,66,48,.28); z-index: 4;
-          transform-origin: 88% 82%; transition: transform .1s linear; pointer-events: none; }
-  .bowl img { width: 100%; height: 100%; object-fit: cover; }
 
   /* ---- 말기: 팬 안에서 계란이 말려 올라감 ---- */
   .eggArea { position: absolute; left: 23%; top: 12%; width: 54%; height: 44%; z-index: 2; pointer-events: none; }
@@ -265,11 +261,8 @@
     <div class="mid">
       <div class="pourCardWrap" id="pourTilt">
         <div class="card" id="pourCard">
-          <div class="img"><img data-src="assets/eggroll2-4.webp" alt=""></div>
-          <div class="panFillCover" id="pourCover"></div>
-          <div class="stream" id="pourStream" style="left:36%;top:19%;"></div>
-          <div class="bowl" id="pourBowl"><img data-src="assets/eggroll2-3.webp" alt=""></div>
-          <div class="tag" style="left:auto;right:12px;">볼이 폰 기울기를 따라와요 🥣</div>
+          <div class="img" id="pourWrap"><img id="pourF1" data-src="assets/pour-1.webp" alt=""><img id="pourF2" data-src="assets/pour-2.webp" alt=""><img id="pourF3" data-src="assets/pour-3.webp" alt=""><img id="pourF4" data-src="assets/pour-4.webp" alt=""><img id="pourF5" data-src="assets/pour-5.webp" alt=""></div>
+          <div class="tag" style="left:auto;right:12px;">기울일수록 콸콸 나와요 🥣</div>
         </div>
       </div>
       <div class="panel">
@@ -333,10 +326,7 @@
     <div class="mid">
       <div class="pourCardWrap" id="pour2Tilt">
         <div class="card" id="pour2Card">
-          <div class="img"><img data-src="assets/eggroll2-4.webp" alt=""></div>
-          <div class="panFillCover" id="pour2Cover"></div>
-          <div class="stream" id="pour2Stream" style="left:36%;top:19%;"></div>
-          <div class="bowl" id="pour2Bowl"><img data-src="assets/eggroll2-3.webp" alt=""></div>
+          <div class="img" id="pour2Wrap"><img id="pour2F1" data-src="assets/pour-1.webp" alt=""><img id="pour2F2" data-src="assets/pour-2.webp" alt=""><img id="pour2F3" data-src="assets/pour-3.webp" alt=""><img id="pour2F4" data-src="assets/pour-4.webp" alt=""><img id="pour2F5" data-src="assets/pour-5.webp" alt=""></div>
           <div class="tag" style="left:auto;right:12px;">볼이 폰 기울기를 따라와요 🥣</div>
         </div>
       </div>
@@ -550,8 +540,8 @@
     var cum = 0, doneFlag = false, lastBubble = 0, speed = 0;
     var card = $('stirCard'), wrap = $('stirWrap'), fill = $('stirFill'), val = $('stirVal'), pill = $('stirPill');
     var frames = [$('stirF1'), $('stirF2'), $('stirF3'), $('stirF4'), $('stirF5'), $('stirF6')];
-    // 셀 순서: 1↔2 왕복 → 3↔4 왕복 → 5 → 완성 6
-    var SEQ = [0, 1, 0, 1, 2, 3, 2, 3, 4];
+    // 셀 순서: 1→2→3→4→5 진행, 완성 6
+    var SEQ = [0, 1, 2, 3, 4];
     var STEP = TARGET / SEQ.length; // 프레임 한 컷당 회전수
     var curFrame = 0;
     function showFrame(i) {
@@ -619,8 +609,15 @@
 
   // ================= 붓기 (2단계 & 4단계 전반) =================
   function makePour(ids, target, nextId, stampEmoji) {
-    var bowl = $(ids.bowl), card = $(ids.card), cover = $(ids.cover), stream = $(ids.stream);
+    var card = $(ids.card), wrap = $(ids.wrap);
     var knob = $(ids.knob), zone = $(ids.zone), val = $(ids.val), fillVal = $(ids.fillVal), fillBar = $(ids.fillBar), pill = $(ids.pill);
+    var frames = ids.frames.map(function (f) { return $(f); });
+    var curFrame = 0;
+    function showFrame(i) {
+      if (i === curFrame) return;
+      curFrame = i;
+      for (var k = 0; k < frames.length; k++) frames[k].style.opacity = k === i ? '1' : '0';
+    }
     var ZLO = 25, ZHI = 55, MAXA = 90;
     var fillPct = 0, doneFlag = false, baseTilt = null, baseSamples = [], lastT = null, dropAcc = 0;
     var touchDrag = null, touchAngle = 0;
@@ -630,21 +627,18 @@
       val.textContent = a.toFixed(0) + '°' + (a >= ZLO && a <= ZHI ? ' · 딱 좋아요!' : '');
       knob.style.left = (a / MAXA * 100) + '%';
       zone.classList.toggle('hot', a >= ZLO && a <= ZHI);
-      bowl.style.transform = 'rotate(' + (a * 0.9) + 'deg)'; // 볼이 팬 쪽으로 기울어짐
+      wrap.style.transform = 'rotate(' + (a * 0.06) + 'deg)'; // 살짝 기우는 촉감만
       var pouring = a >= ZLO;
       var rate = pouring ? clamp((a - ZLO + 6) / (ZHI - ZLO + 6), 0.15, 1.4) : 0;
       if (a > ZHI + 12) rate = 1.7;
-      // 계란물 줄기
-      stream.style.opacity = pouring ? 1 : 0;
-      stream.style.height = pouring ? '46%' : '0';
-      stream.style.width = (8 + rate * 12) + 'px';
       if (lastT !== null && pouring) {
         fillPct = clamp(fillPct + rate * (t - lastT) * 26, 0, 100);
         dropAcc += (t - lastT) * rate;
         if (dropAcc > 0.16) { dropAcc = 0; drop(); sfx('pourLoop'); }
       }
       lastT = t;
-      cover.style.opacity = 1 - fillPct / 100;
+      // 채움 진행도로 1~4컷 스크럽 (5컷은 완성 전용)
+      showFrame(Math.min(3, Math.floor(fillPct / target * 4)));
       fillVal.textContent = fillPct.toFixed(0) + '%';
       fillBar.style.width = fillPct + '%';
       pill.textContent = !pouring ? '초록 구간까지 기울여요 🥣'
@@ -652,8 +646,8 @@
         : a > ZHI ? '살짝만 낮춰요~' : '잘 붓고 있어요! 🍳';
       if (fillPct >= target && !doneFlag) {
         doneFlag = true;
-        bowl.style.transform = 'rotate(0deg)';
-        stream.style.opacity = 0;
+        showFrame(4); // 완성: 팬 가득 + 빈 볼
+        wrap.style.transform = '';
         card.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.05)' }, { transform: 'scale(1)' }], { duration: 300 });
         setTimeout(function () { stepClear(stampEmoji, nextId); }, 350);
       }
@@ -701,11 +695,15 @@
         if (baseSamples.length < 30) { baseSamples.push(s.tiltDeg); if (baseSamples.length === 30) { var sum = 0; baseSamples.forEach(function (x) { sum += x; }); baseTilt = sum / 30; } return; }
         setAngle(s.tiltDeg - baseTilt, s.t);
       },
-      reset: function () { fillPct = 0; doneFlag = false; if (loopTimer) { clearInterval(loopTimer); loopTimer = null; } }
+      reset: function () {
+        fillPct = 0; doneFlag = false; curFrame = 0; wrap.style.transform = '';
+        for (var k = 0; k < frames.length; k++) frames[k].style.opacity = k === 0 ? '1' : '0';
+        if (loopTimer) { clearInterval(loopTimer); loopTimer = null; }
+      }
     };
   }
-  controllers.scrPour = makePour({ bowl: 'pourBowl', card: 'pourCard', cover: 'pourCover', stream: 'pourStream', knob: 'pourKnob', zone: 'pourZone', val: 'pourVal', fillVal: 'pourFillVal', fillBar: 'pourFillBar', pill: 'pourPill' }, 100, 'scrRoll', '🥣');
-  controllers.scrPour2 = makePour({ bowl: 'pour2Bowl', card: 'pour2Card', cover: 'pour2Cover', stream: 'pour2Stream', knob: 'pour2Knob', zone: 'pour2Zone', val: 'pour2Val', fillVal: 'pour2FillVal', fillBar: 'pour2FillBar', pill: 'pour2Pill' }, 60, 'scrRoll2', '🥣');
+  controllers.scrPour = makePour({ card: 'pourCard', wrap: 'pourWrap', frames: ['pourF1', 'pourF2', 'pourF3', 'pourF4', 'pourF5'], knob: 'pourKnob', zone: 'pourZone', val: 'pourVal', fillVal: 'pourFillVal', fillBar: 'pourFillBar', pill: 'pourPill' }, 100, 'scrRoll', '🥣');
+  controllers.scrPour2 = makePour({ card: 'pour2Card', wrap: 'pour2Wrap', frames: ['pour2F1', 'pour2F2', 'pour2F3', 'pour2F4', 'pour2F5'], knob: 'pour2Knob', zone: 'pour2Zone', val: 'pour2Val', fillVal: 'pour2FillVal', fillBar: 'pour2FillBar', pill: 'pour2Pill' }, 60, 'scrRoll2', '🥣');
 
   // ================= 말기 (3단계 & 4단계 후반) =================
   function makeRoll(ids, cells, nextId) {
