@@ -99,7 +99,7 @@
   #stirWrap { will-change: transform; transition: transform .12s; }
   /* 휘젓기: 배경·볼 고정, 휘핑기 스프라이트만 공전. 내용물은 크로스페이드 */
   .stirScene { position: absolute; inset: 0; }
-  .card .img .stirScene .slay { position: absolute; inset: auto; pointer-events: none; -webkit-user-drag: none; }
+  .card .img .stirScene .slay { position: absolute; inset: auto; opacity: 1; pointer-events: none; -webkit-user-drag: none; } /* 프레임 스택용 img+img 숨김 규칙 무효화 */
   .card .img .stirScene .sBg { left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; }
   .card .img .stirScene .sBowl { left: 13%; top: 32%; width: 74%; height: 62%; }
   /* 계란물 '내용물'만 — 볼 테두리는 raw 한 장이 계속 담당하므로 볼이 깜빡일 일이 없다 */
@@ -152,7 +152,7 @@
   /* 붓기: 배경 고정 + 팬 내부 오버레이 + 실시간 회전하는 볼 스프라이트 */
   .pourScene { position: absolute; left: 0; top: 50%; width: 100%; aspect-ratio: 1/1; transform: translateY(-50%); }
   /* .card .img img 전역 규칙(inset:0/100%)보다 특이도를 높여 레이어 좌표를 지킨다 */
-  .card .img .pourScene .lay { position: absolute; inset: auto; pointer-events: none; -webkit-user-drag: none; }
+  .card .img .pourScene .lay { position: absolute; inset: auto; opacity: 1; pointer-events: none; -webkit-user-drag: none; }
   .card .img .pourScene .layBase { left: 0; top: 0; width: 100%; height: 100%; }
   .card .img .pourScene .layFill { left: 4.5%; top: 43.5%; width: 89.9%; height: 38.9%; opacity: 0; transition: opacity .3s; }
   .card .img .pourScene .layBowl { left: 2.2%; top: -1.3%; width: 61.4%; height: 52%;
