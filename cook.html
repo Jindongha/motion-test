@@ -102,7 +102,8 @@
   .card .img .stirScene .slay { position: absolute; inset: auto; pointer-events: none; -webkit-user-drag: none; }
   .card .img .stirScene .sBg { left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; }
   .card .img .stirScene .sBowl { left: 13%; top: 32%; width: 74%; height: 62%; }
-  .card .img .stirScene .sMix { opacity: 0; transition: opacity .35s; }
+  /* 계란물 '내용물'만 — 볼 테두리는 raw 한 장이 계속 담당하므로 볼이 깜빡일 일이 없다 */
+  .card .img .stirScene .sMixC { left: 20.8%; top: 43.9%; width: 58.6%; height: 23.1%; opacity: 0; transition: opacity .35s; }
   .card .img .stirScene .sWhisk { left: 39%; top: 5%; width: 22%; height: 64.8%;
                                   transform-origin: 50% 75%; will-change: transform; }
   #scrStir .card { aspect-ratio: 1/1; }
@@ -249,7 +250,7 @@
     </div>
     <div class="mid">
       <div class="card" id="stirCard">
-        <div class="img" id="stirWrap"><div class="stirScene"><img class="slay sBg" data-src="assets/stir-bg.webp" alt=""><img class="slay sBowl" id="stirBowlRaw" data-src="assets/stir-bowl-raw.webp" alt=""><img class="slay sBowl sMix" id="stirBowlMix" data-src="assets/stir-bowl-mix.webp" alt=""><img class="slay sWhisk" id="stirWhisk" data-src="assets/stir-whisk.webp" alt=""></div></div>
+        <div class="img" id="stirWrap"><div class="stirScene"><img class="slay sBg" data-src="assets/stir-bg.webp" alt=""><img class="slay sBowl" id="stirBowlRaw" data-src="assets/stir-bowl-raw.webp" alt=""><img class="slay sMixC" id="stirMix" data-src="assets/stir-mix-contents.webp" alt=""><img class="slay sWhisk" id="stirWhisk" data-src="assets/stir-whisk.webp" alt=""></div></div>
         <div class="tag">폰으로 원을 그려도, 손가락으로 저어도 OK</div>
       </div>
       <div class="panel">
@@ -557,19 +558,32 @@
     var TARGET = 6; // 목표 회전수
     var cum = 0, doneFlag = false, lastBubble = 0, speed = 0;
     var card = $('stirCard'), fill = $('stirFill'), val = $('stirVal'), pill = $('stirPill');
-    var mixImg = $('stirBowlMix'), whisk = $('stirWhisk');
-    var th = 0; // 휘핑기 공전 각도(라디안) — 입력 각도를 그대로 따라간다
-    function renderWhisk() {
+    var mixImg = $('stirMix'), whisk = $('stirWhisk');
+    var th = 0, touching = false;
+    // 휘핑기 와이어 중심을 카드 % 좌표로 배치 (기본 위치: 50, 53.6)
+    function placeWhisk(pxc, pyc) {
       var r = card.getBoundingClientRect();
-      var dx = r.width * 0.09 * Math.cos(th), dy = r.height * 0.045 * Math.sin(th);
-      whisk.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) rotate(' + (9 * Math.cos(th)).toFixed(1) + 'deg)';
+      var dx = (pxc - 50) / 100 * r.width, dy = (pyc - 53.6) / 100 * r.height;
+      whisk.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) rotate(' + ((pxc - 50) * 0.5).toFixed(1) + 'deg)';
+    }
+    // 모션 모드(손가락 없음)일 때만 누적 각도로 공전
+    function renderWhisk() { placeWhisk(50 + 18 * Math.cos(th), 55 + 8 * Math.sin(th)); }
+    // 터치 중엔 손가락 위치를 그대로 따라간다 (볼 안쪽 타원으로 제한)
+    function fingerWhisk(e) {
+      if (doneFlag) return;
+      var r = card.getBoundingClientRect();
+      var fx = (e.clientX - r.left) / r.width * 100, fy = (e.clientY - r.top) / r.height * 100;
+      var ex = (fx - 50) / 24, ey = (fy - 55) / 11;
+      var m = Math.sqrt(ex * ex + ey * ey);
+      if (m > 1) { ex /= m; ey /= m; }
+      placeWhisk(50 + ex * 24, 55 + ey * 11);
     }
     function add(dRad, t) {
       if (doneFlag) return;
       cum += dRad; th += dRad;
       var rev = Math.abs(cum) / (2 * Math.PI);
       var pct = clamp(rev / TARGET * 100, 0, 100);
-      renderWhisk();
+      if (!touching) renderWhisk();
       mixImg.style.opacity = (pct / 100).toFixed(3); // 저을수록 계란물로
       fill.style.width = pct + '%';
       val.textContent = pct.toFixed(0) + '%';
@@ -593,16 +607,20 @@
     }
     // 터치: 원 드래그
     var last = null;
-    card.addEventListener('pointerdown', function (e) { try { card.setPointerCapture(e.pointerId); } catch (x) {} last = angOf(e); e.preventDefault(); });
+    card.addEventListener('pointerdown', function (e) {
+      try { card.setPointerCapture(e.pointerId); } catch (x) {}
+      last = angOf(e); touching = true; fingerWhisk(e); e.preventDefault();
+    });
     card.addEventListener('pointermove', function (e) {
       if (last === null) return;
+      fingerWhisk(e); // 휘핑기가 손끝을 그대로 따라온다
       var a = angOf(e), d = a - last;
       while (d > Math.PI) d -= 2 * Math.PI;
       while (d < -Math.PI) d += 2 * Math.PI;
       last = a; add(d);
     });
-    card.addEventListener('pointerup', function () { last = null; });
-    card.addEventListener('pointercancel', function () { last = null; });
+    card.addEventListener('pointerup', function () { last = null; touching = false; });
+    card.addEventListener('pointercancel', function () { last = null; touching = false; });
     function angOf(e) {
       var r = card.getBoundingClientRect();
       return Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2));
@@ -614,7 +632,8 @@
         if (s.dAng !== null && s.hm > 2.5) add(s.dAng, s.t);
       },
       reset: function () {
-        cum = 0; th = 0; doneFlag = false; lastBubble = 0; fill.style.width = '0'; val.textContent = '0%';
+        cum = 0; th = 0; touching = false; doneFlag = false; lastBubble = 0;
+        fill.style.width = '0'; val.textContent = '0%';
         mixImg.style.opacity = '0'; whisk.style.transform = '';
       }
     };
