@@ -101,9 +101,9 @@
   .stirScene { position: absolute; inset: 0; }
   .card .img .stirScene .slay { position: absolute; inset: auto; opacity: 1; pointer-events: none; -webkit-user-drag: none; } /* 프레임 스택용 img+img 숨김 규칙 무효화 */
   .card .img .stirScene .sBg { left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; }
-  .card .img .stirScene .sBowl { left: 13%; top: 36%; width: 74%; height: 57%; }
+  .card .img .stirScene .sBowl { left: 13%; top: 35%; width: 74%; height: 58%; }
   /* 계란물 '내용물'만 — 볼 테두리는 raw 한 장이 계속 담당하므로 볼이 깜빡일 일이 없다 */
-  .card .img .stirScene .sMixC { left: 20.8%; top: 47.9%; width: 58.6%; height: 23.1%; opacity: 0; transition: opacity .35s; }
+  .card .img .stirScene .sMixC { left: 21.4%; top: 48.1%; width: 58%; height: 22.5%; opacity: 0; transition: opacity .35s; }
   .card .img .stirScene .sWhisk { left: 39%; top: 9%; width: 22%; height: 64.8%;
                                   transform-origin: 50% 75%; will-change: transform; }
   #scrStir .card { aspect-ratio: 1/1; }
@@ -157,7 +157,7 @@
   .card .img .pourScene .layFill { left: 4.5%; top: 43.5%; width: 89.9%; height: 38.9%; opacity: 0; transition: opacity .3s; }
   .card .img .pourScene .layBowl { left: 2.2%; top: -1.3%; width: 61.4%; height: 52%;
                                    transform-origin: 81.9% 81.7%; transition: transform .1s linear; transform: rotate(-35deg); }
-  .card .img .pourScene .layStream { left: 51%; top: 41%; width: 3.2%; height: 22%; opacity: 0; transition: opacity .15s;
+  .card .img .pourScene .layStream { left: 50.6%; top: 40.8%; width: 3.8%; height: 22.5%; opacity: 0; transition: opacity .15s;
                                      background: linear-gradient(#F3CE59, #F7DC7E); border-radius: 0 0 999px 999px; }
   .stream { position: absolute; left: 50%; top: -6px; width: 10px; height: 0; margin-left: -5px; z-index: 3;
             background: linear-gradient(180deg, #FFE49B, var(--yolk)); border-radius: 0 0 8px 8px; opacity: 0; transition: opacity .15s; }
@@ -654,7 +654,8 @@
       curFill = i;
       for (var k = 0; k < fills.length; k++) fills[k].style.opacity = k === i ? '1' : '0';
     }
-    var ZLO = 25, ZHI = 55, MAXA = 90;
+    var ZLO = 25, ZHI = 55, MAXA = 90, FAILA = 72;
+    var overAcc = 0; // 과기울임 누적 시간(초)
     var fillPct = 0, doneFlag = false, baseTilt = null, baseSamples = [], lastT = null, dropAcc = 0;
     var touchDrag = null, touchAngle = 0;
     function setAngle(aDeg, t) {
@@ -673,6 +674,12 @@
         dropAcc += (t - lastT) * rate;
         if (dropAcc > 0.16) { dropAcc = 0; drop(); sfx('pourLoop'); }
       }
+      // 너무 심하게 기울인 채 버티면 실패 (센서 스파이크는 0.35초 유예로 걸러냄)
+      if (lastT !== null) {
+        if (a >= FAILA) overAcc += (t - lastT);
+        else overAcc = Math.max(0, overAcc - (t - lastT) * 2);
+        if (overAcc > 0.35) { overAcc = 0; lastT = t; doFail(); return; }
+      }
       lastT = t;
       // 채움 진행도에 따라 각 단계가 자기 구간에서 페이드인되며 이전 단계를 덮는다 (휘젓기와 동일)
       var rr = fillPct / target * 100;
@@ -681,6 +688,7 @@
       fillVal.textContent = fillPct.toFixed(0) + '%';
       fillBar.style.width = fillPct + '%';
       pill.textContent = !pouring ? '초록 구간까지 기울여요 🥣'
+        : a >= 70 ? '너무 기울어요!! 쏟아지겠어요 😱'
         : a > ZHI + 12 ? '콸콸콸!! 조금만 살살~ 😅'
         : a > ZHI ? '살짝만 낮춰요~' : '잘 붓고 있어요! 🍳';
       if (fillPct >= target && !doneFlag) {
@@ -691,6 +699,25 @@
         card.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.05)' }, { transform: 'scale(1)' }], { duration: 300 });
         setTimeout(function () { stepClear(stampEmoji, nextId); }, 350);
       }
+    }
+    function doFail() {
+      doneFlag = true;
+      sfx('fail'); vib([70, 50, 90]);
+      stream.style.opacity = '0';
+      pill.textContent = '앗!! 너무 기울여서 다 쏟았어요 😵';
+      var ar = app.getBoundingClientRect();
+      burst(ar.width / 2, ar.height / 2, ['💧', '🥚', '💦'], 12, 120);
+      card.animate([
+        { transform: 'translateX(0)' }, { transform: 'translateX(-9px)' }, { transform: 'translateX(8px)' },
+        { transform: 'translateX(-6px)' }, { transform: 'translateX(4px)' }, { transform: 'translateX(0)' }
+      ], { duration: 450 });
+      setTimeout(function () {
+        fillPct = 0; lastT = null; doneFlag = false;
+        fillBar.style.width = '0'; fillVal.textContent = '0%';
+        fills[0].style.opacity = '1';
+        for (var k = 1; k < 5; k++) fills[k].style.opacity = '0';
+        pill.textContent = '괜찮아요! 다시 천천히 부어요 🥣';
+      }, 1100);
     }
     function drop() {
       var r = card.getBoundingClientRect();
@@ -737,7 +764,7 @@
         setAngle(s.tiltDeg - baseTilt, s.t);
       },
       reset: function () {
-        fillPct = 0; doneFlag = false; curFill = -2; showFill(0);
+        fillPct = 0; doneFlag = false; overAcc = 0; curFill = -2; showFill(0);
         spr.style.transform = 'rotate(' + (-BAKED) + 'deg)';
         stream.style.opacity = '0';
         if (loopTimer) { clearInterval(loopTimer); loopTimer = null; }
