@@ -674,8 +674,10 @@
         if (dropAcc > 0.16) { dropAcc = 0; drop(); sfx('pourLoop'); }
       }
       lastT = t;
-      // 채움 진행도로 팬 내부 오버레이 스크럽 (0=빈 팬, 1~4=차오름)
-      showFill(fillPct <= 1 ? 0 : Math.min(4, 1 + Math.floor(fillPct / target * 4)));
+      // 채움 진행도에 따라 각 단계가 자기 구간에서 페이드인되며 이전 단계를 덮는다 (휘젓기와 동일)
+      var rr = fillPct / target * 100;
+      fills[0].style.opacity = '1';
+      for (var k = 1; k < 5; k++) fills[k].style.opacity = clamp((rr - (k - 1) * 25) / 10, 0, 1).toFixed(3);
       fillVal.textContent = fillPct.toFixed(0) + '%';
       fillBar.style.width = fillPct + '%';
       pill.textContent = !pouring ? '초록 구간까지 기울여요 🥣'
