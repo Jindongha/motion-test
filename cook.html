@@ -98,13 +98,14 @@
   /* ---- 휘젓기: 거품기 왕복 셀 애니메이션 (1↔2 → 3↔4 → 완성) ---- */
   #stirWrap { will-change: transform; transition: transform .12s; }
   /* 휘젓기: 배경·볼 고정, 휘핑기 스프라이트만 공전. 내용물은 크로스페이드 */
-  .stirScene { position: absolute; inset: 0; }
-  .card .img .stirScene .slay { position: absolute; inset: auto; opacity: 1; pointer-events: none; -webkit-user-drag: none; } /* 프레임 스택용 img+img 숨김 규칙 무효화 */
+  /* 카드가 max-height로 눌려 정사각이 아니어도 장면은 항상 정사각 -> cover 크롭으로 볼이 잘리는 일 방지 */
+  .stirScene { position: absolute; top: 0; height: 100%; aspect-ratio: 1/1; left: 50%; transform: translateX(-50%); }
+  .card .img .stirScene .slay { position: absolute; inset: auto; opacity: 1; object-fit: fill; pointer-events: none; -webkit-user-drag: none; } /* 프레임 스택 규칙(숨김/cover) 무효화 */
   .card .img .stirScene .sBg { left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; }
-  .card .img .stirScene .sBowl { left: 13%; top: 35%; width: 74%; height: 58%; }
+  .card .img .stirScene .sBowl { left: 16%; top: 37.7%; width: 68%; height: 53.3%; }
   /* 계란물 '내용물'만 — 볼 테두리는 raw 한 장이 계속 담당하므로 볼이 깜빡일 일이 없다 */
-  .card .img .stirScene .sMixC { left: 21.4%; top: 48.1%; width: 58%; height: 22.5%; opacity: 0; transition: opacity .35s; }
-  .card .img .stirScene .sWhisk { left: 39%; top: 9%; width: 22%; height: 64.8%;
+  .card .img .stirScene .sMixC { left: 23.7%; top: 49.8%; width: 53.3%; height: 20.7%; opacity: 0; transition: opacity .35s; }
+  .card .img .stirScene .sWhisk { left: 40%; top: 15.9%; width: 20%; height: 58.9%;
                                   transform-origin: 50% 75%; will-change: transform; }
   #scrStir .card { aspect-ratio: 1/1; }
 
@@ -563,20 +564,22 @@
     // 휘핑기 와이어 중심을 카드 % 좌표로 배치 (기본 위치: 50, 53.6)
     function placeWhisk(pxc, pyc) {
       var r = card.getBoundingClientRect();
-      var dx = (pxc - 50) / 100 * r.width, dy = (pyc - 57.6) / 100 * r.height;
+      var side = r.height; // 장면은 카드 높이 기준 정사각
+      var dx = (pxc - 50) / 100 * side, dy = (pyc - 60.1) / 100 * side;
       whisk.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) rotate(' + ((pxc - 50) * 0.5).toFixed(1) + 'deg)';
     }
     // 모션 모드(손가락 없음)일 때만 누적 각도로 공전
-    function renderWhisk() { placeWhisk(50 + 18 * Math.cos(th), 59 + 8 * Math.sin(th)); }
+    function renderWhisk() { placeWhisk(50 + 17 * Math.cos(th), 60 + 7.5 * Math.sin(th)); }
     // 터치 중엔 손가락 위치를 그대로 따라간다 (볼 안쪽 타원으로 제한)
     function fingerWhisk(e) {
       if (doneFlag) return;
       var r = card.getBoundingClientRect();
-      var fx = (e.clientX - r.left) / r.width * 100, fy = (e.clientY - r.top) / r.height * 100;
-      var ex = (fx - 50) / 24, ey = (fy - 59) / 11;
+      var side = r.height, sx0 = r.left + (r.width - side) / 2;
+      var fx = (e.clientX - sx0) / side * 100, fy = (e.clientY - r.top) / side * 100;
+      var ex = (fx - 50) / 22, ey = (fy - 60) / 10;
       var m = Math.sqrt(ex * ex + ey * ey);
       if (m > 1) { ex /= m; ey /= m; }
-      placeWhisk(50 + ex * 24, 59 + ey * 11);
+      placeWhisk(50 + ex * 22, 60 + ey * 10);
     }
     function add(dRad, t) {
       if (doneFlag) return;
